@@ -291,7 +291,7 @@ const Index: React.FC = () => {
         </div>
       </aside>
 
-      <main className="flex-1 md:ml-64 min-h-screen pt-20 md:pt-0 p-4 md:p-12 transition-all duration-500 overflow-x-hidden">
+      <main className={`flex-1 ${isSidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'} min-h-screen pt-20 md:pt-0 p-4 md:p-12 transition-all duration-300 ease-in-out overflow-x-hidden`}>
         <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
           {currentView === 'ATTENDANCE' && <Attendance user={user} onSuccess={() => {}} />}
           {currentView === 'REPORTS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Reports user={user} />}
