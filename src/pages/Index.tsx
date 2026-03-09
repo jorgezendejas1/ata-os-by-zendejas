@@ -113,20 +113,21 @@ const Index: React.FC = () => {
     setCurrentView('ATTENDANCE');
   };
 
-  const NavItem = ({ view, icon: Icon, label }: { view: any, icon: any, label: string }) => (
+  const NavItem = ({ view, icon: Icon, label, collapsed = false }: { view: any, icon: any, label: string, collapsed?: boolean }) => (
     <button
       onClick={() => { setCurrentView(view); setIsMobileMenuOpen(false); }}
-      className={`flex items-center justify-between w-full px-5 py-4 rounded-2xl transition-all duration-300 ${
+      title={collapsed ? label : undefined}
+      className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} w-full ${collapsed ? 'px-0 py-3' : 'px-5 py-4'} rounded-2xl transition-all duration-300 ${
         currentView === view 
           ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 dark:shadow-none' 
           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
       }`}
     >
-      <div className="flex items-center gap-4">
-        <Icon size={22} strokeWidth={currentView === view ? 2.5 : 2} />
-        <span className={`font-black text-xs uppercase tracking-widest ${currentView === view ? 'translate-x-1' : ''} transition-transform`}>{label}</span>
+      <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-4'}`}>
+        <Icon size={collapsed ? 20 : 22} strokeWidth={currentView === view ? 2.5 : 2} />
+        {!collapsed && <span className={`font-black text-xs uppercase tracking-widest ${currentView === view ? 'translate-x-1' : ''} transition-transform`}>{label}</span>}
       </div>
-      {currentView === view && <ChevronRight size={14} className="opacity-50" />}
+      {!collapsed && currentView === view && <ChevronRight size={14} className="opacity-50" />}
     </button>
   );
 
