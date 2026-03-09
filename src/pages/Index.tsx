@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, AppNotification } from '../types';
 import { initDB, getTheme, saveTheme, AppTheme } from '../services/db';
@@ -11,7 +12,7 @@ import Roadmap from '../screens/Roadmap';
 import RecordsManagement from '../screens/RecordsManagement';
 import Targets from '../screens/Targets';
 import AdminControl from '../screens/AdminControl';
-import { LayoutDashboard, Users as UsersIcon, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, BookOpen, Library } from 'lucide-react';
+import { LayoutDashboard, Users as UsersIcon, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
   useEffect(() => {
