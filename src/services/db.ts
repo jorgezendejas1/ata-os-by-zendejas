@@ -1,191 +1,260 @@
-// services/db.ts - LocalStorage-based database service for ATA OS
-// This will be migrated to Lovable Cloud (Supabase) in a future step
 
-import { User, AttendanceRecord, StaffingEntry, PositionTarget, Task, EmailAutomationConfig, SentEmailLog, AppNotification } from '../types';
+import { supabase } from '@/integrations/supabase/client';
+import { AttendanceRecord, User, StaffingEntry, Task, PositionTarget, EmailAutomationConfig, SentEmailLog, AppNotification } from '../types';
 import { INITIAL_MASTER_USER } from '../constants';
 
-export type AppTheme = 'light' | 'dark' | 'system';
-
-const KEYS = {
-  USERS: 'ata_os_users',
-  RECORDS: 'ata_os_records',
-  STAFFING: 'ata_os_staffing',
-  TARGETS: 'ata_os_targets',
-  TASKS: 'ata_os_tasks',
-  EMAIL_CONFIG: 'ata_os_email_config',
-  EMAIL_LOGS: 'ata_os_email_logs',
-  THEME: 'ata_os_theme',
-};
-
-// --- Toast / Notification System ---
+// --- GLOBAL NOTIFICATIONS HELPER ---
 export const showToast = (message: string, type: AppNotification['type'] = 'info', title?: string) => {
-  const notification: AppNotification = {
-    id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    type,
-    message,
-    title
-  };
-  window.dispatchEvent(new CustomEvent('app-notify', { detail: notification }));
+  const event = new CustomEvent('app-notify', {
+    detail: { id: Math.random().toString(36).substring(2), message, type, title }
+  });
+  window.dispatchEvent(event);
 };
 
-// --- Init ---
-export const initDB = async (): Promise<void> => {
-  const users = localStorage.getItem(KEYS.USERS);
-  if (!users) {
-    localStorage.setItem(KEYS.USERS, JSON.stringify([INITIAL_MASTER_USER]));
-  }
-  // Initialize other stores if empty
-  if (!localStorage.getItem(KEYS.RECORDS)) localStorage.setItem(KEYS.RECORDS, JSON.stringify([]));
-  if (!localStorage.getItem(KEYS.STAFFING)) localStorage.setItem(KEYS.STAFFING, JSON.stringify([]));
-  if (!localStorage.getItem(KEYS.TARGETS)) localStorage.setItem(KEYS.TARGETS, JSON.stringify([]));
-  if (!localStorage.getItem(KEYS.TASKS)) localStorage.setItem(KEYS.TASKS, JSON.stringify([]));
-};
+// --- USUARIOS ---
 
-// --- Theme ---
-export const getTheme = (): AppTheme => {
-  return (localStorage.getItem(KEYS.THEME) as AppTheme) || 'system';
-};
-
-export const saveTheme = (theme: AppTheme): void => {
-  localStorage.setItem(KEYS.THEME, theme);
-};
-
-// --- Auth ---
-export const authenticate = async (email: string, password: string): Promise<User | null> => {
-  const users = JSON.parse(localStorage.getItem(KEYS.USERS) || '[]') as User[];
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password_hash === password);
-  return user || null;
-};
-
-// --- Users ---
 export const getUsers = async (): Promise<User[]> => {
-  return JSON.parse(localStorage.getItem(KEYS.USERS) || '[]');
-};
-
-export const saveUser = async (user: User): Promise<void> => {
-  const users = await getUsers();
-  const idx = users.findIndex(u => u.id === user.id);
-  if (idx >= 0) {
-    users[idx] = user;
-  } else {
-    users.push(user);
+  const { data, error } = await supabase.from('users').select('*');
+  if (error) {
+    showToast("No se pudieron cargar los usuarios", "error");
+    return [];
   }
-  localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-  showToast("Usuario guardado correctamente", "success");
+  return (data || []) as unknown as User[];
 };
 
-export const deleteUser = async (id: string): Promise<void> => {
-  const users = await getUsers();
-  localStorage.setItem(KEYS.USERS, JSON.stringify(users.filter(u => u.id !== id)));
-  showToast("Usuario eliminado", "error");
+export const saveUser = async (user: User) => {
+  const { error } = await supabase.from('users').upsert(user as any);
+  if (error) {
+    showToast("Error al guardar usuario", "error");
+    throw error;
+  }
+  showToast("Usuario actualizado correctamente", "success");
 };
 
-// --- Records ---
+export const deleteUser = async (id: string) => {
+  const { error } = await supabase.from('users').delete().eq('id', id);
+  if (error) {
+    showToast("No se pudo eliminar el usuario", "error");
+    throw error;
+  }
+  showToast("Usuario eliminado", "info");
+};
+
+export const authenticate = async (email: string, pass: string): Promise<User | null> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .eq('password_hash', pass)
+    .single();
+  
+  if (error) return null;
+  return data as unknown as User;
+};
+
+// --- REGISTROS DE ASISTENCIA ---
+
 export const getRecords = async (): Promise<AttendanceRecord[]> => {
-  return JSON.parse(localStorage.getItem(KEYS.RECORDS) || '[]');
-};
-
-export const saveRecords = async (newRecords: AttendanceRecord[]): Promise<void> => {
-  const existing = await getRecords();
-  localStorage.setItem(KEYS.RECORDS, JSON.stringify([...existing, ...newRecords]));
-  showToast(`${newRecords.length} registros sincronizados`, "success");
-};
-
-export const updateAttendanceRecord = async (record: AttendanceRecord, editorName: string): Promise<void> => {
-  const records = await getRecords();
-  const idx = records.findIndex(r => r.id === record.id);
-  if (idx >= 0) {
-    const old = records[idx];
-    const history = old.history || [];
+  const { data, error } = await supabase
+    .from('attendance_records')
+    .select('*')
+    .order('dateRegistered', { ascending: false })
+    .order('timeRegistered', { ascending: false });
     
-    if (old.plannedCount !== record.plannedCount) {
-      history.push({ date: new Date().toISOString(), editorName, field: 'Meta', oldValue: old.plannedCount || 0, newValue: record.plannedCount || 0 });
-    }
-    if (old.promoterCount !== record.promoterCount) {
-      history.push({ date: new Date().toISOString(), editorName, field: 'Real', oldValue: old.promoterCount, newValue: record.promoterCount });
-    }
-    
-    records[idx] = { ...record, history };
-    localStorage.setItem(KEYS.RECORDS, JSON.stringify(records));
-    showToast("Registro actualizado", "info");
+  if (error) {
+    console.error('Error fetching records:', error.message);
+    return [];
   }
+  return (data || []) as unknown as AttendanceRecord[];
 };
 
-export const deleteAttendanceRecord = async (id: string): Promise<void> => {
-  const records = await getRecords();
-  localStorage.setItem(KEYS.RECORDS, JSON.stringify(records.filter(r => r.id !== id)));
-  showToast("Registro eliminado permanentemente", "error");
+export const saveRecords = async (newRecords: AttendanceRecord[]) => {
+  const { error } = await supabase.from('attendance_records').insert(newRecords as any[]);
+  if (error) {
+    showToast("Error crítico al sincronizar asistencias", "error");
+    console.error('Error saving records:', error);
+    throw error;
+  }
+  showToast(`Sincronización exitosa: ${newRecords.length} registros`, "success");
+};
+
+export const updateAttendanceRecord = async (record: AttendanceRecord, editorName?: string) => {
+  const { error } = await supabase.from('attendance_records').update(record as any).eq('id', record.id);
+  if (error) {
+    showToast("No se pudo actualizar el registro", "error");
+    throw error;
+  }
+  showToast("Registro actualizado correctamente", "success");
+};
+
+export const deleteAttendanceRecord = async (id: string) => {
+  const { error } = await supabase.from('attendance_records').delete().eq('id', id);
+  if (error) {
+    showToast("Error al eliminar registro de asistencia", "error");
+    throw error;
+  }
+  showToast("Registro eliminado de la bitácora", "info");
+};
+
+// --- DISTRIBUCIÓN (STAFFING) ---
+
+export const getStaffing = async (terminalId: string, year: number, month: number): Promise<StaffingEntry[]> => {
+  const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  
+  let query = supabase
+    .from('staffing')
+    .select('*')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: true });
+
+  if (terminalId !== 'all') {
+    query = query.eq('terminalId', terminalId);
+  }
+    
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error("Error loading staffing:", error);
+    return [];
+  }
+  
+  return (data || []).map((item: any) => ({
+    date: item.date,
+    terminalId: item.terminalId || item.terminalid || item.terminal_id,
+    zoneId: item.zoneId || item.zoneid || item.zone_id,
+    companyId: item.companyId || item.companyid || item.company_id,
+    count: Number(item.count || 0)
+  }));
+};
+
+export const saveStaffingBatch = async (entries: StaffingEntry[]) => {
+  if (entries.length === 0) return;
+
+  const dbEntries = entries.map(e => ({
+    date: e.date,
+    terminalId: e.terminalId,
+    zoneId: e.zoneId,
+    companyId: e.companyId,
+    count: e.count
+  }));
+
+  const { error } = await supabase
+    .from('staffing')
+    .upsert(dbEntries as any[])
+    .select();
+  
+  if (error) {
+    console.error("Staffing Error:", error);
+    throw error;
+  }
+  
+  showToast("Distribución sincronizada con éxito", "success");
 };
 
 export const getPlannedCount = async (date: string, terminalId: string, zoneId: string | undefined, companyId: string): Promise<number | null> => {
-  const staffing = JSON.parse(localStorage.getItem(KEYS.STAFFING) || '[]') as StaffingEntry[];
-  const entry = staffing.find(s => s.date === date && s.terminalId === terminalId && s.zoneId === (zoneId || 'default') && s.companyId === companyId);
-  return entry ? entry.count : null;
-};
-
-// --- Staffing ---
-export const getStaffing = async (terminalId: string, year: number, month: number): Promise<StaffingEntry[]> => {
-  const all = JSON.parse(localStorage.getItem(KEYS.STAFFING) || '[]') as StaffingEntry[];
-  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-  return all.filter(s => {
-    if (terminalId !== 'all' && s.terminalId !== terminalId) return false;
-    return s.date.startsWith(monthStr);
-  });
-};
-
-export const saveStaffingBatch = async (entries: StaffingEntry[]): Promise<void> => {
-  const all = JSON.parse(localStorage.getItem(KEYS.STAFFING) || '[]') as StaffingEntry[];
+  const zoneKey = zoneId || 'default';
   
-  entries.forEach(entry => {
-    const idx = all.findIndex(s => s.date === entry.date && s.terminalId === entry.terminalId && s.zoneId === entry.zoneId && s.companyId === entry.companyId);
-    if (idx >= 0) {
-      all[idx] = entry;
-    } else {
-      all.push(entry);
-    }
-  });
-  
-  localStorage.setItem(KEYS.STAFFING, JSON.stringify(all));
-  showToast(`${entries.length} entradas de staffing guardadas`, "success");
+  const { data, error } = await supabase
+    .from('staffing')
+    .select('count')
+    .eq('date', date)
+    .eq('terminalId', terminalId)
+    .eq('zoneId', zoneKey)
+    .eq('companyId', companyId)
+    .maybeSingle();
+    
+  if (error || !data) return null;
+  return Number(data.count);
 };
 
-// --- Targets ---
+// --- METAS (TARGETS) ---
+
 export const getTargets = async (): Promise<PositionTarget[]> => {
-  return JSON.parse(localStorage.getItem(KEYS.TARGETS) || '[]');
+  const { data, error } = await supabase.from('targets').select('*');
+  if (error) return [];
+  
+  return (data || []).map((item: any) => ({
+    terminalId: item.terminalId || item.terminalid || item.terminal_id,
+    zoneId: item.zoneId || item.zoneid || item.zone_id,
+    companyId: item.companyId || item.companyid || item.company_id,
+    count: Number(item.count || 0)
+  }));
 };
 
-export const saveTargets = async (targets: PositionTarget[]): Promise<void> => {
-  localStorage.setItem(KEYS.TARGETS, JSON.stringify(targets));
-  showToast("Posiciones guardadas correctamente", "success");
-};
-
-// --- Tasks ---
-export const getTasks = async (): Promise<Task[]> => {
-  return JSON.parse(localStorage.getItem(KEYS.TASKS) || '[]');
-};
-
-export const saveTask = async (task: Task): Promise<void> => {
-  const tasks = await getTasks();
-  const idx = tasks.findIndex(t => t.id === task.id);
-  if (idx >= 0) {
-    tasks[idx] = task;
-  } else {
-    tasks.push(task);
+export const saveTargets = async (targets: PositionTarget[]) => {
+  const { error } = await supabase.from('targets').upsert(targets as any[]);
+  
+  if (error) {
+    console.error("Targets Error:", error);
+    showToast(`Error Metas: ${error.message}`, "error");
+    throw error;
   }
-  localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
+  showToast("Posiciones actualizadas correctamente", "success");
 };
 
-export const deleteTask = async (id: string): Promise<void> => {
-  const tasks = await getTasks();
-  localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks.filter(t => t.id !== id)));
+// --- ROADMAP (TAREAS) ---
+
+export const getTasks = async (): Promise<Task[]> => {
+  const { data, error } = await supabase.from('tasks').select('*');
+  if (error) return [];
+  
+  return (data || []).map((t: any) => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    priority: t.priority,
+    dueDate: t.dueDate || t.due_date,
+    createdAt: t.createdAt || t.created_at
+  })).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
-// --- Email Config ---
-export const getEmailConfig = async (): Promise<EmailAutomationConfig | null> => {
-  const data = localStorage.getItem(KEYS.EMAIL_CONFIG);
-  return data ? JSON.parse(data) : null;
+export const saveTask = async (task: Task) => {
+  const { error } = await supabase.from('tasks').upsert(task as any);
+  if (error) throw error;
+};
+
+export const deleteTask = async (id: string) => {
+  const { error } = await supabase.from('tasks').delete().eq('id', id);
+  if (error) throw error;
+};
+
+// --- CONFIGURACIÓN ---
+
+export const getEmailConfig = async (): Promise<EmailAutomationConfig> => {
+  const { data, error } = await supabase.from('config').select('*').eq('id', 'email_automation').maybeSingle();
+  if (error || !data) return { recipients: [], enabled: false, lastSentWeekId: '' };
+  return (data as any).value;
+};
+
+export const saveEmailConfig = async (config: EmailAutomationConfig) => {
+  const { error } = await supabase.from('config').upsert({ id: 'email_automation', value: config } as any);
+  if (error) throw error;
 };
 
 export const getEmailLogs = async (): Promise<SentEmailLog[]> => {
-  return JSON.parse(localStorage.getItem(KEYS.EMAIL_LOGS) || '[]');
+  const { data, error } = await supabase.from('email_logs').select('*').order('date', { ascending: false });
+  if (error) return [];
+  return (data || []) as unknown as SentEmailLog[];
 };
+
+export const saveEmailLog = async (log: SentEmailLog) => {
+  await supabase.from('email_logs').insert(log as any);
+};
+
+export const initDB = async () => {
+  try {
+    const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      await saveUser(INITIAL_MASTER_USER as User);
+    }
+  } catch (e) {
+    console.warn("DB Init warning:", e);
+  }
+};
+
+export type AppTheme = 'light' | 'dark' | 'system';
+export const getTheme = (): AppTheme => (localStorage.getItem('app_ui_theme') as AppTheme) || 'system';
+export const saveTheme = (theme: AppTheme) => localStorage.setItem('app_ui_theme', theme);
