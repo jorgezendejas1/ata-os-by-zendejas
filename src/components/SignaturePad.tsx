@@ -1,10 +1,13 @@
+
 import React, { useRef, useEffect, useState } from 'react';
+import { Eraser } from 'lucide-react';
 
 interface SignaturePadProps {
-  onEnd: (signature: string) => void;
+  onEnd: (dataUrl: string | null) => void;
+  disabled?: boolean;
 }
 
-const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd }) => {
+const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd, disabled = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
@@ -12,106 +15,109 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * 2;
-    canvas.height = rect.height * 2;
-    ctx.scale(2, 2);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1e3a5f';
-    ctx.lineWidth = 2;
+    if (ctx) ctx.scale(ratio, ratio);
   }, []);
 
-  const getPos = (e: React.MouseEvent | React.TouchEvent) => {
+  const getCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
     
-    if ('touches' in e) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top
-      };
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    
+    if ('touches' in event) {
+      clientX = event.touches[0].clientX;
+      clientY = event.touches[0].clientY;
+    } else {
+      clientX = (event as React.MouseEvent).clientX;
+      clientY = (event as React.MouseEvent).clientY;
     }
+
     return {
-      x: (e as React.MouseEvent).clientX - rect.left,
-      y: (e as React.MouseEvent).clientY - rect.top
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
+    if (disabled) return;
     setIsDrawing(true);
-    const pos = getPos(e);
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    
+    const { x, y } = getCoordinates(e);
     ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1e3a8a'; // Blue 900 for clearer signature
+    e.preventDefault();
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    if (!isDrawing || disabled) return;
+    const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
-
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
+    
+    const { x, y } = getCoordinates(e);
+    ctx.lineTo(x, y);
     ctx.stroke();
-    setHasSignature(true);
+    e.preventDefault();
   };
 
-  const stopDrawing = () => {
+  const endDrawing = () => {
+    if (!isDrawing) return;
     setIsDrawing(false);
-    if (hasSignature && canvasRef.current) {
+    setHasSignature(true);
+    if (canvasRef.current) {
       onEnd(canvasRef.current.toDataURL());
     }
   };
 
   const clear = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx || !canvas) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
     setHasSignature(false);
-    onEnd('');
+    onEnd(null);
   };
 
   return (
-    <div className="space-y-2">
-      <div className="relative border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-100">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-28 cursor-crosshair touch-none"
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-        />
-        {!hasSignature && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-xs text-gray-300 font-bold uppercase tracking-widest">Firmar aquí</span>
-          </div>
-        )}
-      </div>
-      {hasSignature && (
-        <button
-          type="button"
-          onClick={clear}
-          className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700 transition-colors"
-        >
-          Borrar firma
-        </button>
+    // Note: Signature pad stays with a light background to ensure the signature (image) is always high contrast for reports
+    <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-100 overflow-hidden touch-none transition-colors">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-32 cursor-crosshair block"
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={endDrawing}
+        onMouseLeave={endDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={endDrawing}
+      />
+      {!hasSignature && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 text-[10px] font-black uppercase tracking-widest">
+          Firma táctil del Supervisor
+        </div>
       )}
+      <button
+        type="button"
+        onClick={clear}
+        disabled={disabled}
+        className="absolute top-2 right-2 p-2 bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-300 rounded-xl text-gray-600 transition-colors shadow-sm"
+        title="Borrar Firma"
+      >
+        <Eraser size={16} />
+      </button>
     </div>
   );
 };
