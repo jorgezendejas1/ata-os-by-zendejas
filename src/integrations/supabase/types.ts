@@ -14,7 +14,213 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance_records: {
+        Row: {
+          companyId: string
+          companyName: string
+          createdAt: string
+          dateRegistered: string
+          history: Json | null
+          id: string
+          plannedCount: number | null
+          promoterCount: number
+          scheduleId: string
+          scheduleTime: string
+          supervisorSignature: string
+          terminalId: string
+          terminalName: string
+          timeRegistered: string
+          userId: string
+          zoneId: string | null
+          zoneName: string | null
+        }
+        Insert: {
+          companyId: string
+          companyName: string
+          createdAt?: string
+          dateRegistered: string
+          history?: Json | null
+          id: string
+          plannedCount?: number | null
+          promoterCount?: number
+          scheduleId: string
+          scheduleTime: string
+          supervisorSignature?: string
+          terminalId: string
+          terminalName: string
+          timeRegistered: string
+          userId: string
+          zoneId?: string | null
+          zoneName?: string | null
+        }
+        Update: {
+          companyId?: string
+          companyName?: string
+          createdAt?: string
+          dateRegistered?: string
+          history?: Json | null
+          id?: string
+          plannedCount?: number | null
+          promoterCount?: number
+          scheduleId?: string
+          scheduleTime?: string
+          supervisorSignature?: string
+          terminalId?: string
+          terminalName?: string
+          timeRegistered?: string
+          userId?: string
+          zoneId?: string | null
+          zoneName?: string | null
+        }
+        Relationships: []
+      }
+      config: {
+        Row: {
+          id: string
+          value: Json
+        }
+        Insert: {
+          id: string
+          value?: Json
+        }
+        Update: {
+          id?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          content: string
+          date: string
+          id: string
+          recipients: string
+          subject: string
+        }
+        Insert: {
+          content: string
+          date: string
+          id: string
+          recipients: string
+          subject: string
+        }
+        Update: {
+          content?: string
+          date?: string
+          id?: string
+          recipients?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      staffing: {
+        Row: {
+          companyId: string
+          count: number
+          date: string
+          id: string
+          terminalId: string
+          zoneId: string
+        }
+        Insert: {
+          companyId: string
+          count?: number
+          date: string
+          id?: string
+          terminalId: string
+          zoneId?: string
+        }
+        Update: {
+          companyId?: string
+          count?: number
+          date?: string
+          id?: string
+          terminalId?: string
+          zoneId?: string
+        }
+        Relationships: []
+      }
+      targets: {
+        Row: {
+          companyId: string
+          count: number
+          id: string
+          terminalId: string
+          zoneId: string
+        }
+        Insert: {
+          companyId: string
+          count?: number
+          id?: string
+          terminalId: string
+          zoneId?: string
+        }
+        Update: {
+          companyId?: string
+          count?: number
+          id?: string
+          terminalId?: string
+          zoneId?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          createdAt: string
+          dueDate: string
+          id: string
+          priority: string
+          status: string
+          title: string
+        }
+        Insert: {
+          createdAt?: string
+          dueDate: string
+          id: string
+          priority?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          createdAt?: string
+          dueDate?: string
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          assignedTerminals: string[] | null
+          createdAt: string
+          email: string
+          id: string
+          name: string
+          password_hash: string
+          role: string
+        }
+        Insert: {
+          assignedTerminals?: string[] | null
+          createdAt?: string
+          email: string
+          id: string
+          name: string
+          password_hash: string
+          role?: string
+        }
+        Update: {
+          assignedTerminals?: string[] | null
+          createdAt?: string
+          email?: string
+          id?: string
+          name?: string
+          password_hash?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
