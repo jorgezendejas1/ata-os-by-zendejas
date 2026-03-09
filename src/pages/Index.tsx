@@ -214,53 +214,80 @@ const Index: React.FC = () => {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 h-screen fixed left-0 top-0 z-10 no-print transition-all duration-500">
-        <div className="p-10">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20">
-              <Plane size={24} />
+      <aside className={`hidden md:flex flex-col ${isSidebarCollapsed ? 'w-[72px]' : 'w-64'} bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 h-screen fixed left-0 top-0 z-10 no-print transition-all duration-300 ease-in-out`}>
+        {!isSidebarCollapsed && (
+          <div className="p-10">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20">
+                <Plane size={24} />
+              </div>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">ATA OS</h1>
             </div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">ATA OS</h1>
+            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] ml-1">Cloud Infrastructure</p>
           </div>
-          <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] ml-1">Cloud Infrastructure</p>
-        </div>
+        )}
+        {isSidebarCollapsed && (
+          <div className="py-6 flex justify-center">
+            <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20">
+              <Plane size={20} />
+            </div>
+          </div>
+        )}
         
-        <nav className="flex-1 px-6 space-y-1.5 overflow-y-auto no-scrollbar">
-          <NavItem view="ATTENDANCE" icon={LayoutDashboard} label="Asistencias" />
+        <nav className={`flex-1 ${isSidebarCollapsed ? 'px-3' : 'px-6'} space-y-1.5 overflow-y-auto no-scrollbar`}>
+          <NavItem view="ATTENDANCE" icon={LayoutDashboard} label="Asistencias" collapsed={isSidebarCollapsed} />
           {(user.role === 'MASTER' || user.role === 'REPORTES') && (
             <>
-               <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Gestión de Datos</div>
-               <NavItem view="REPORTS" icon={FileText} label="Reportes" />
-               <NavItem view="RECORDS" icon={Database} label="Bitácora" />
-               <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" />
-               <NavItem view="TARGETS" icon={Target} label="Posiciones" />
+               {!isSidebarCollapsed && <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Gestión de Datos</div>}
+               {isSidebarCollapsed && <div className="pt-4" />}
+               <NavItem view="REPORTS" icon={FileText} label="Reportes" collapsed={isSidebarCollapsed} />
+               <NavItem view="RECORDS" icon={Database} label="Bitácora" collapsed={isSidebarCollapsed} />
+               <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" collapsed={isSidebarCollapsed} />
+               <NavItem view="TARGETS" icon={Target} label="Posiciones" collapsed={isSidebarCollapsed} />
             </>
           )}
           {user.role === 'MASTER' && (
             <>
-             <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>
-             <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" />
-             <NavItem view="USERS" icon={UsersIcon} label="Usuarios" />
+             {!isSidebarCollapsed && <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>}
+             {isSidebarCollapsed && <div className="pt-4" />}
+             <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" collapsed={isSidebarCollapsed} />
+             <NavItem view="USERS" icon={UsersIcon} label="Usuarios" collapsed={isSidebarCollapsed} />
             </>
           )}
         </nav>
 
-        <div className="p-8 space-y-6">
-          <div className="flex bg-slate-50 dark:bg-gray-800 p-1 rounded-[1.2rem] border dark:border-gray-700">
-            <button onClick={() => handleThemeChange('light')} className={`flex-1 py-2.5 rounded-xl flex items-center justify-center transition-all ${theme === 'light' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Sun size={18}/></button>
-            <button onClick={() => handleThemeChange('dark')} className={`flex-1 py-2.5 rounded-xl flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-white dark:bg-gray-700 text-blue-400 shadow-sm' : 'text-gray-400'}`}><Moon size={18}/></button>
-            <button onClick={() => handleThemeChange('system')} className={`flex-1 py-2.5 rounded-xl flex items-center justify-center transition-all ${theme === 'system' ? 'bg-white dark:bg-gray-700 text-purple-500 shadow-sm' : 'text-gray-400'}`}><Monitor size={18}/></button>
-          </div>
+        <div className={`${isSidebarCollapsed ? 'p-3' : 'p-8'} space-y-6`}>
+          {!isSidebarCollapsed && (
+            <>
+              <div className="flex bg-slate-50 dark:bg-gray-800 p-1 rounded-[1.2rem] border dark:border-gray-700">
+                <button onClick={() => handleThemeChange('light')} className={`flex-1 py-2.5 rounded-xl flex items-center justify-center transition-all ${theme === 'light' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Sun size={18}/></button>
+                <button onClick={() => handleThemeChange('dark')} className={`flex-1 py-2.5 rounded-xl flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-white dark:bg-gray-700 text-blue-400 shadow-sm' : 'text-gray-400'}`}><Moon size={18}/></button>
+                <button onClick={() => handleThemeChange('system')} className={`flex-1 py-2.5 rounded-xl flex items-center justify-center transition-all ${theme === 'system' ? 'bg-white dark:bg-gray-700 text-purple-500 shadow-sm' : 'text-gray-400'}`}><Monitor size={18}/></button>
+              </div>
+              
+              <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/40 rounded-[1.5rem] border border-gray-100 dark:border-gray-800">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-lg shadow-blue-500/30">{user.name.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-gray-900 dark:text-gray-100 truncate uppercase tracking-tight">{user.name}</p>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">{user.role}</p>
+                </div>
+              </div>
+              
+              <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-4 text-[10px] text-rose-500 font-black uppercase tracking-[0.2em] hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all"><LogOut size={16} /> Salir</button>
+            </>
+          )}
+          {isSidebarCollapsed && (
+            <button onClick={handleLogout} title="Cerrar Sesión" className="flex items-center justify-center w-full py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all"><LogOut size={18} /></button>
+          )}
           
-          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/40 rounded-[1.5rem] border border-gray-100 dark:border-gray-800">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-lg shadow-blue-500/30">{user.name.charAt(0)}</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-gray-900 dark:text-gray-100 truncate uppercase tracking-tight">{user.name}</p>
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">{user.role}</p>
-            </div>
-          </div>
-          
-          <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-4 text-[10px] text-rose-500 font-black uppercase tracking-[0.2em] hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all"><LogOut size={16} /> Salir</button>
+          {/* Toggle Button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(prev => !prev)}
+            className="flex items-center justify-center w-full py-3 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all duration-200"
+            title={isSidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
         </div>
       </aside>
 
