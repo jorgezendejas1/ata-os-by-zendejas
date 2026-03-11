@@ -185,7 +185,7 @@ export const getTargets = async (): Promise<PositionTarget[]> => {
 };
 
 export const saveTargets = async (targets: PositionTarget[]) => {
-  const { error } = await supabase.from('targets').upsert(targets as any[]);
+  const { error } = await supabase.from('targets').upsert(targets as any[], { onConflict: 'terminalId,zoneId,companyId' });
   
   if (error) {
     console.error("Targets Error:", error);

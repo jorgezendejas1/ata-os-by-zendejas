@@ -50,14 +50,17 @@ const Targets: React.FC = () => {
       return t ? t.count : 0;
   };
 
-  const saveAll = () => {
+  const saveAll = async () => {
       setIsSaving(true);
-      saveTargets(targets);
-      setTimeout(() => {
-          setIsSaving(false);
+      try {
+          await saveTargets(targets);
           setSaveSuccess(true);
           setTimeout(() => setSaveSuccess(false), 3000);
-      }, 500);
+      } catch (err) {
+          console.error("Save targets error:", err);
+      } finally {
+          setIsSaving(false);
+      }
   };
 
   const calculateTotals = () => {
