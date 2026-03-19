@@ -258,3 +258,34 @@ export const initDB = async () => {
 export type AppTheme = 'light' | 'dark' | 'system';
 export const getTheme = (): AppTheme => (localStorage.getItem('app_ui_theme') as AppTheme) || 'system';
 export const saveTheme = (theme: AppTheme) => localStorage.setItem('app_ui_theme', theme);
+
+// --- PROMOTORES ---
+
+export interface Promoter {
+  id: string;
+  company_id: string;
+  name: string;
+  terminal_id: string;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const getPromoters = async (): Promise<Promoter[]> => {
+  const { data, error } = await supabase
+    .from("promoters")
+    .select("*")
+    .eq("active", true)
+    .order("name");
+  if (error) { showToast("Error al cargar promotores", "error"); return []; }
+  return (data || []) as Promoter[];
+};
+
+export const updatePromoter = async (p: Promoter): Promise<void> => {
+  const { error } = await supabase
+    .from("promoters")
+    .update({ ...p, updated_at: new Date().toISOString() })
+    .eq("id", p.id);
+  if (error) { showToast("Error al actualizar promotor", "error"); throw error; }
+  showToast("Promotor actualizado", "success");
+};
