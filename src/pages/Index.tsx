@@ -12,7 +12,8 @@ import Roadmap from '../screens/Roadmap';
 import RecordsManagement from '../screens/RecordsManagement';
 import Targets from '../screens/Targets';
 import AdminControl from '../screens/AdminControl';
-import { LayoutDashboard, Users as UsersIcon, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library } from 'lucide-react';
+import Promoters from '../screens/Promoters';
+import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
   useEffect(() => {
