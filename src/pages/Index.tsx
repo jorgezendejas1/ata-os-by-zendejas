@@ -246,6 +246,7 @@ const Index: React.FC = () => {
                <NavItem view="RECORDS" icon={Database} label="Bitácora" collapsed={isSidebarCollapsed} />
                <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" collapsed={isSidebarCollapsed} />
                <NavItem view="TARGETS" icon={Target} label="Posiciones" collapsed={isSidebarCollapsed} />
+               <NavItem view="PROMOTERS" icon={Users2} label="Promotores" collapsed={isSidebarCollapsed} />
             </>
           )}
           {user.role === 'MASTER' && (
