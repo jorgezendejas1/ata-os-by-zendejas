@@ -289,3 +289,52 @@ export const updatePromoter = async (p: Promoter): Promise<void> => {
   if (error) { showToast("Error al actualizar promotor", "error"); throw error; }
   showToast("Promotor actualizado", "success");
 };
+
+// --- ADC (AVISOS DE COMPROMISO) ---
+
+export interface AdcRecord {
+  id?: string;
+  month: number;
+  year: number;
+  week_number: number;
+  week_start: string;
+  week_end: string;
+  company_id: string;
+  promoter_name: string;
+  adc_date: string;
+  terminal_id: string;
+  desarrollo: string;
+  tipo_adc: string;
+  supervisor_ata: string;
+  supervisor_desarrollo: string;
+  se_retira_tia: boolean;
+  tercer_aviso: boolean;
+  descripcion: string;
+  fecha_limite: string;
+}
+
+export const getAdcRecords = async (
+  month: number, year: number, week_number: number, company_id: string
+): Promise<AdcRecord[]> => {
+  const { data, error } = await supabase
+    .from("adc_records").select("*")
+    .eq("month", month).eq("year", year)
+    .eq("week_number", week_number).eq("company_id", company_id);
+  if (error) { showToast("Error al cargar ADCs", "error"); return []; }
+  return (data || []) as AdcRecord[];
+};
+
+export const saveAdcRecords = async (records: AdcRecord[]): Promise<void> => {
+  const { error } = await supabase.from("adc_records").insert(records as any[]);
+  if (error) { showToast("Error al guardar ADCs", "error"); throw error; }
+  showToast(`${records.length} ADC(s) guardados correctamente`, "success");
+};
+
+export const clearAdcRecords = async (
+  month: number, year: number, week_number: number, company_id: string
+): Promise<void> => {
+  const { error } = await supabase.from("adc_records").delete()
+    .eq("month", month).eq("year", year)
+    .eq("week_number", week_number).eq("company_id", company_id);
+  if (error) { showToast("Error al limpiar ADCs", "error"); throw error; }
+};

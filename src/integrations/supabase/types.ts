@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      adc_records: {
+        Row: {
+          adc_date: string
+          company_id: string
+          created_at: string | null
+          desarrollo: string
+          descripcion: string
+          fecha_limite: string
+          id: string
+          month: number
+          promoter_name: string
+          se_retira_tia: boolean
+          supervisor_ata: string
+          supervisor_desarrollo: string
+          tercer_aviso: boolean
+          terminal_id: string
+          tipo_adc: string
+          week_end: string
+          week_number: number
+          week_start: string
+          year: number
+        }
+        Insert: {
+          adc_date: string
+          company_id: string
+          created_at?: string | null
+          desarrollo?: string
+          descripcion?: string
+          fecha_limite?: string
+          id?: string
+          month: number
+          promoter_name: string
+          se_retira_tia?: boolean
+          supervisor_ata?: string
+          supervisor_desarrollo?: string
+          tercer_aviso?: boolean
+          terminal_id: string
+          tipo_adc?: string
+          week_end: string
+          week_number: number
+          week_start: string
+          year: number
+        }
+        Update: {
+          adc_date?: string
+          company_id?: string
+          created_at?: string | null
+          desarrollo?: string
+          descripcion?: string
+          fecha_limite?: string
+          id?: string
+          month?: number
+          promoter_name?: string
+          se_retira_tia?: boolean
+          supervisor_ata?: string
+          supervisor_desarrollo?: string
+          tercer_aviso?: boolean
+          terminal_id?: string
+          tipo_adc?: string
+          week_end?: string
+          week_number?: number
+          week_start?: string
+          year?: number
+        }
+        Relationships: []
+      }
       attendance_records: {
         Row: {
           companyId: string

@@ -13,6 +13,7 @@ import RecordsManagement from '../screens/RecordsManagement';
 import Targets from '../screens/Targets';
 import AdminControl from '../screens/AdminControl';
 import Promoters from '../screens/Promoters';
+import ADC from '../screens/ADC';
 import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
@@ -49,7 +50,7 @@ const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (i
 
 const Index: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS'>('ATTENDANCE');
+  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC'>('ATTENDANCE');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<AppTheme>('system');
@@ -198,6 +199,7 @@ const Index: React.FC = () => {
                 <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" />
                 <NavItem view="TARGETS" icon={Target} label="Posiciones" />
                 <NavItem view="PROMOTERS" icon={Users2} label="Promotores" />
+                <NavItem view="ADC" icon={AlertCircle} label="ADC" />
               </>
             )}
             {user.role === 'MASTER' && (
@@ -247,6 +249,7 @@ const Index: React.FC = () => {
                <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" collapsed={isSidebarCollapsed} />
                <NavItem view="TARGETS" icon={Target} label="Posiciones" collapsed={isSidebarCollapsed} />
                <NavItem view="PROMOTERS" icon={Users2} label="Promotores" collapsed={isSidebarCollapsed} />
+               <NavItem view="ADC" icon={AlertCircle} label="ADC" collapsed={isSidebarCollapsed} />
             </>
           )}
           {user.role === 'MASTER' && (
@@ -304,6 +307,7 @@ const Index: React.FC = () => {
           {currentView === 'ADMIN_CONTROL' && user.role === 'MASTER' && <AdminControl />}
           {currentView === 'RECORDS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <RecordsManagement user={user} />}
           {currentView === 'PROMOTERS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Promoters />}
+          {currentView === 'ADC' && (user.role === 'MASTER' || user.role === 'REPORTES') && <ADC />}
         </div>
       </main>
     </div>
