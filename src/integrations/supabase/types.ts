@@ -113,6 +113,36 @@ export type Database = {
         }
         Relationships: []
       }
+      promoters: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+          terminal_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          terminal_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          terminal_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       staffing: {
         Row: {
           companyId: string
