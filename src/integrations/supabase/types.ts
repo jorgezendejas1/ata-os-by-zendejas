@@ -179,6 +179,54 @@ export type Database = {
         }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          bcc_recipients: string[]
+          body: string
+          company_id: string | null
+          created_at: string | null
+          email_type: string
+          id: string
+          month: number
+          sent_at: string | null
+          status: string
+          subject: string
+          to_recipients: string[]
+          week_number: number
+          year: number
+        }
+        Insert: {
+          bcc_recipients?: string[]
+          body: string
+          company_id?: string | null
+          created_at?: string | null
+          email_type: string
+          id?: string
+          month: number
+          sent_at?: string | null
+          status?: string
+          subject: string
+          to_recipients?: string[]
+          week_number: number
+          year: number
+        }
+        Update: {
+          bcc_recipients?: string[]
+          body?: string
+          company_id?: string | null
+          created_at?: string | null
+          email_type?: string
+          id?: string
+          month?: number
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          to_recipients?: string[]
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
       premios_entries: {
         Row: {
           adc_pct: number | null
