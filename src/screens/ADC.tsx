@@ -111,31 +111,46 @@ const ADC: React.FC = () => {
     }
   }, [weeks, weekNumber]);
 
+  const mapTerminal = (val: string): string => {
+    const v = val.toLowerCase().trim();
+    if (v === 'terminal 3') return 'T3';
+    if (v === 'terminal 4') return 'T4';
+    if (v === 't2 nacional' || v === 't2 internacional' || v === 'terminal 2') return 'T2';
+    return val.trim().toUpperCase();
+  };
+
   const parseText = () => {
     if (!pasteText.trim() || !currentWeek) return;
-    const lines = pasteText.trim().split('\n').filter(l => l.trim());
-    const records: AdcRecord[] = lines.map(line => {
+    const lines = pasteText.trim().split('\n');
+    const records: AdcRecord[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('Administración')) continue;
       const cols = line.split('\t');
-      return {
+      if (cols[0].trim() === '#') continue;
+      if (!/^\d+$/.test(cols[0].trim())) continue;
+      if (cols.length < 11) continue;
+      records.push({
         month,
         year,
         week_number: weekNumber,
         week_start: formatDateStr(currentWeek.start),
         week_end: formatDateStr(currentWeek.end),
         company_id: companyId,
-        promoter_name: (cols[0] || '').trim(),
-        adc_date: (cols[1] || '').trim(),
-        terminal_id: (cols[2] || '').trim(),
-        desarrollo: (cols[3] || '').trim(),
-        tipo_adc: (cols[4] || '').trim(),
-        supervisor_ata: (cols[5] || '').trim(),
-        supervisor_desarrollo: (cols[6] || '').trim(),
-        se_retira_tia: (cols[7] || '').trim().toLowerCase() === 'si' || (cols[7] || '').trim().toLowerCase() === 'sí' || (cols[7] || '').trim() === '1',
-        tercer_aviso: (cols[8] || '').trim().toLowerCase() === 'si' || (cols[8] || '').trim().toLowerCase() === 'sí' || (cols[8] || '').trim() === '1',
-        descripcion: (cols[9] || '').trim(),
-        fecha_limite: (cols[10] || '').trim(),
-      };
-    });
+        promoter_name: (cols[1] || '').trim(),
+        adc_date: (cols[2] || '').trim().split(' ')[0],
+        terminal_id: mapTerminal(cols[4] || ''),
+        desarrollo: (cols[5] || '').trim(),
+        tipo_adc: (cols[6] || '').trim(),
+        supervisor_ata: (cols[8] || '').trim(),
+        supervisor_desarrollo: (cols[9] || '').trim(),
+        descripcion: (cols[10] || '').trim(),
+        fecha_limite: (cols[13] || '').trim(),
+        se_retira_tia: false,
+        tercer_aviso: false,
+      });
+    }
     setParsedRecords(records);
   };
 
@@ -265,7 +280,7 @@ const ADC: React.FC = () => {
             rows={20}
             value={pasteText}
             onChange={e => { setPasteText(e.target.value); setParsedRecords([]); }}
-            placeholder="Pega aquí el contenido copiado de ata-erp.com. Formato esperado: una fila por ADC con columnas separadas por tabulador: PROMOTOR | FECHA | TERMINAL | DESARROLLO | TIPO | SUPERVISOR ATA | SUPERVISOR DESARROLLO | SE RETIRA TIA | TERCER AVISO | DESCRIPCIÓN | FECHA LÍMITE"
+            placeholder="Copia la tabla completa de ata-erp.com (Administración Folios ATA) y pégala aquí con Ctrl+V. El sistema detectará automáticamente el formato y extraerá los datos relevantes."
             className="font-mono text-xs"
           />
           <div className="flex gap-3">
@@ -274,13 +289,25 @@ const ADC: React.FC = () => {
             </Button>
             {parsedRecords.length > 0 && (
               <Button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
-                <Save size={16} /> Procesar y Guardar ({parsedRecords.length})
+                <Save size={16} /> Guardar ({parsedRecords.length})
               </Button>
             )}
             <Button variant="destructive" onClick={handleClear} disabled={loading}>
               <Trash2 size={16} /> Limpiar
             </Button>
           </div>
+
+          {/* Validation message after parsing */}
+          {pasteText.trim() && parsedRecords.length > 0 && (
+            <div className="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-800">
+              ✓ {parsedRecords.length} registros detectados — revisa el preview y presiona Guardar para confirmar
+            </div>
+          )}
+          {pasteText.trim() && parsedRecords.length === 0 && savedRecords.length === 0 && (
+            <div className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+              ⚠ No se detectaron registros válidos. Asegúrate de copiar toda la tabla desde ata-erp.com incluyendo las filas de datos.
+            </div>
+          )}
 
           {/* Preview table */}
           {displayRecords.length > 0 && (
@@ -296,9 +323,9 @@ const ADC: React.FC = () => {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Terminal</TableHead>
                     <TableHead>Desarrollo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Retira TIA</TableHead>
-                    <TableHead>3er Aviso</TableHead>
+                    <TableHead>Tipo Falta</TableHead>
+                    <TableHead>Supervisor ATA</TableHead>
+                    <TableHead>Supervisor Desarrollo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -310,8 +337,8 @@ const ADC: React.FC = () => {
                       <TableCell className="text-xs">{r.terminal_id}</TableCell>
                       <TableCell className="text-xs">{r.desarrollo}</TableCell>
                       <TableCell className="text-xs">{r.tipo_adc}</TableCell>
-                      <TableCell className="text-xs">{r.se_retira_tia ? '✓' : ''}</TableCell>
-                      <TableCell className="text-xs">{r.tercer_aviso ? '✓' : ''}</TableCell>
+                      <TableCell className="text-xs">{r.supervisor_ata}</TableCell>
+                      <TableCell className="text-xs">{r.supervisor_desarrollo}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
