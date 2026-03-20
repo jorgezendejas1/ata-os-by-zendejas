@@ -54,7 +54,7 @@ const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (i
 
 const Index: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4'>('ATTENDANCE');
+  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS'>('ATTENDANCE');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<AppTheme>('system');
