@@ -179,6 +179,63 @@ export type Database = {
         }
         Relationships: []
       }
+      premios_entries: {
+        Row: {
+          adc_pct: number | null
+          adc_score: number | null
+          asistencia_score: number | null
+          company_id: string
+          created_at: string | null
+          eficiencia: number | null
+          gerente_pw1: number | null
+          id: string
+          lugar: number | null
+          month: number
+          show_factor: number | null
+          terminal_id: string
+          total_score: number | null
+          updated_at: string | null
+          week_number: number
+          year: number
+        }
+        Insert: {
+          adc_pct?: number | null
+          adc_score?: number | null
+          asistencia_score?: number | null
+          company_id: string
+          created_at?: string | null
+          eficiencia?: number | null
+          gerente_pw1?: number | null
+          id?: string
+          lugar?: number | null
+          month: number
+          show_factor?: number | null
+          terminal_id: string
+          total_score?: number | null
+          updated_at?: string | null
+          week_number: number
+          year: number
+        }
+        Update: {
+          adc_pct?: number | null
+          adc_score?: number | null
+          asistencia_score?: number | null
+          company_id?: string
+          created_at?: string | null
+          eficiencia?: number | null
+          gerente_pw1?: number | null
+          id?: string
+          lugar?: number | null
+          month?: number
+          show_factor?: number | null
+          terminal_id?: string
+          total_score?: number | null
+          updated_at?: string | null
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
       promoters: {
         Row: {
           active: boolean
