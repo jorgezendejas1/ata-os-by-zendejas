@@ -269,6 +269,45 @@ export type Database = {
         }
         Relationships: []
       }
+      powers_entries: {
+        Row: {
+          company_id: string
+          count: number
+          created_at: string | null
+          day_date: string
+          id: string
+          month: number
+          terminal_id: string
+          updated_at: string | null
+          week_number: number
+          year: number
+        }
+        Insert: {
+          company_id: string
+          count?: number
+          created_at?: string | null
+          day_date: string
+          id?: string
+          month: number
+          terminal_id: string
+          updated_at?: string | null
+          week_number: number
+          year: number
+        }
+        Update: {
+          company_id?: string
+          count?: number
+          created_at?: string | null
+          day_date?: string
+          id?: string
+          month?: number
+          terminal_id?: string
+          updated_at?: string | null
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
       premios_entries: {
         Row: {
           adc_pct: number | null

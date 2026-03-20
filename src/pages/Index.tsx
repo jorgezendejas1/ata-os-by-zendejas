@@ -17,7 +17,8 @@ import ADC from '../screens/ADC';
 import Premios from '../screens/Premios';
 import Correos from '../screens/Correos';
 import ModulosT4 from '../screens/ModulosT4';
-import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid } from 'lucide-react';
+import Powers from '../screens/Powers';
+import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
   useEffect(() => {
@@ -53,7 +54,7 @@ const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (i
 
 const Index: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4'>('ATTENDANCE');
+  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS'>('ATTENDANCE');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<AppTheme>('system');
@@ -206,6 +207,7 @@ const Index: React.FC = () => {
                 <NavItem view="PREMIOS" icon={Trophy} label="Premios" />
                 <NavItem view="CORREOS" icon={Mail} label="Correos" />
                 <NavItem view="MODULOS_T4" icon={LayoutGrid} label="Módulos T4" />
+                <NavItem view="POWERS" icon={Zap} label="Powers" />
               </>
             )}
             {user.role === 'MASTER' && (
@@ -259,6 +261,7 @@ const Index: React.FC = () => {
                <NavItem view="PREMIOS" icon={Trophy} label="Premios" collapsed={isSidebarCollapsed} />
                <NavItem view="CORREOS" icon={Mail} label="Correos" collapsed={isSidebarCollapsed} />
                <NavItem view="MODULOS_T4" icon={LayoutGrid} label="Módulos T4" collapsed={isSidebarCollapsed} />
+               <NavItem view="POWERS" icon={Zap} label="Powers" collapsed={isSidebarCollapsed} />
             </>
           )}
           {user.role === 'MASTER' && (
@@ -320,6 +323,7 @@ const Index: React.FC = () => {
           {currentView === 'PREMIOS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Premios />}
           {currentView === 'CORREOS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Correos />}
           {currentView === 'MODULOS_T4' && (user.role === 'MASTER' || user.role === 'REPORTES') && <ModulosT4 />}
+          {currentView === 'POWERS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Powers />}
         </div>
       </main>
     </div>
