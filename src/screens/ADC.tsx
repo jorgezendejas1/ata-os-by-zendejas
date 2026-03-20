@@ -280,7 +280,7 @@ const ADC: React.FC = () => {
             rows={20}
             value={pasteText}
             onChange={e => { setPasteText(e.target.value); setParsedRecords([]); }}
-            placeholder="Pega aquí el contenido copiado de ata-erp.com. Formato esperado: una fila por ADC con columnas separadas por tabulador: PROMOTOR | FECHA | TERMINAL | DESARROLLO | TIPO | SUPERVISOR ATA | SUPERVISOR DESARROLLO | SE RETIRA TIA | TERCER AVISO | DESCRIPCIÓN | FECHA LÍMITE"
+            placeholder="Copia la tabla completa de ata-erp.com (Administración Folios ATA) y pégala aquí con Ctrl+V. El sistema detectará automáticamente el formato y extraerá los datos relevantes."
             className="font-mono text-xs"
           />
           <div className="flex gap-3">
@@ -289,13 +289,25 @@ const ADC: React.FC = () => {
             </Button>
             {parsedRecords.length > 0 && (
               <Button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
-                <Save size={16} /> Procesar y Guardar ({parsedRecords.length})
+                <Save size={16} /> Guardar ({parsedRecords.length})
               </Button>
             )}
             <Button variant="destructive" onClick={handleClear} disabled={loading}>
               <Trash2 size={16} /> Limpiar
             </Button>
           </div>
+
+          {/* Validation message after parsing */}
+          {pasteText.trim() && parsedRecords.length > 0 && (
+            <div className="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-800">
+              ✓ {parsedRecords.length} registros detectados — revisa el preview y presiona Guardar para confirmar
+            </div>
+          )}
+          {pasteText.trim() && parsedRecords.length === 0 && savedRecords.length === 0 && (
+            <div className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+              ⚠ No se detectaron registros válidos. Asegúrate de copiar toda la tabla desde ata-erp.com incluyendo las filas de datos.
+            </div>
+          )}
 
           {/* Preview table */}
           {displayRecords.length > 0 && (
@@ -311,9 +323,9 @@ const ADC: React.FC = () => {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Terminal</TableHead>
                     <TableHead>Desarrollo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Retira TIA</TableHead>
-                    <TableHead>3er Aviso</TableHead>
+                    <TableHead>Tipo Falta</TableHead>
+                    <TableHead>Supervisor ATA</TableHead>
+                    <TableHead>Supervisor Desarrollo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -325,8 +337,8 @@ const ADC: React.FC = () => {
                       <TableCell className="text-xs">{r.terminal_id}</TableCell>
                       <TableCell className="text-xs">{r.desarrollo}</TableCell>
                       <TableCell className="text-xs">{r.tipo_adc}</TableCell>
-                      <TableCell className="text-xs">{r.se_retira_tia ? '✓' : ''}</TableCell>
-                      <TableCell className="text-xs">{r.tercer_aviso ? '✓' : ''}</TableCell>
+                      <TableCell className="text-xs">{r.supervisor_ata}</TableCell>
+                      <TableCell className="text-xs">{r.supervisor_desarrollo}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
