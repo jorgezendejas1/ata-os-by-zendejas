@@ -315,6 +315,7 @@ const Index: React.FC = () => {
           {currentView === 'PROMOTERS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Promoters />}
           {currentView === 'ADC' && (user.role === 'MASTER' || user.role === 'REPORTES') && <ADC />}
           {currentView === 'PREMIOS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Premios />}
+          {currentView === 'CORREOS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Correos />}
         </div>
       </main>
     </div>
