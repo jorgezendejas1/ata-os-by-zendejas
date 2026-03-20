@@ -227,6 +227,48 @@ export type Database = {
         }
         Relationships: []
       }
+      modules_entries: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          module_number: number
+          month: number
+          notes: string | null
+          updated_at: string | null
+          week_end: string
+          week_number: number
+          week_start: string
+          year: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          module_number: number
+          month: number
+          notes?: string | null
+          updated_at?: string | null
+          week_end: string
+          week_number: number
+          week_start: string
+          year: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          module_number?: number
+          month?: number
+          notes?: string | null
+          updated_at?: string | null
+          week_end?: string
+          week_number?: number
+          week_start?: string
+          year?: number
+        }
+        Relationships: []
+      }
       premios_entries: {
         Row: {
           adc_pct: number | null
