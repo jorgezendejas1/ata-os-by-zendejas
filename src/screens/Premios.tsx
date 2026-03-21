@@ -25,26 +25,25 @@ const T3_POINTS = [60, 48, 36, 24, 12, 0];
 const T4_POINTS = [70, 60, 50, 40, 30, 20];
 
 function getMonthWeeks(year: number, month: number) {
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  const firstDayOfMonth = new Date(year, month, 1);
+  const dayOfWeek = firstDayOfMonth.getDay();
+  const daysToSubtract = dayOfWeek >= 4 ? dayOfWeek - 4 : dayOfWeek + 3;
+  const startOfSem1 = new Date(year, month, 1 - daysToSubtract);
   const weeks: { number: number; start: Date; end: Date; label: string }[] = [];
-  let current = new Date(firstDay);
-  const dayOfWeek = current.getDay();
-  if (dayOfWeek !== 1) {
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    current.setDate(current.getDate() + diff);
-  }
-  let weekNum = 1;
-  while (current <= lastDay || weekNum === 1) {
-    const weekStart = new Date(current);
-    const weekEnd = new Date(current);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    const startStr = `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()].substring(0, 3)}`;
-    const endStr = `${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()].substring(0, 3)}`;
-    weeks.push({ number: weekNum, start: weekStart, end: weekEnd, label: `Semana ${weekNum} · ${startStr}-${endStr}` });
-    current.setDate(current.getDate() + 7);
-    weekNum++;
-    if (weekNum > 6) break;
+  for (let i = 0; i < 6; i++) {
+    const start = new Date(startOfSem1);
+    start.setDate(startOfSem1.getDate() + i * 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    if (i > 0 && start > new Date(year, month + 1, 0)) break;
+    const startStr = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
+    const endStr = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
+    weeks.push({
+      number: i + 1,
+      start,
+      end,
+      label: `Semana ${i + 1} · ${startStr}-${endStr}`,
+    });
   }
   return weeks;
 }

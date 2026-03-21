@@ -22,26 +22,25 @@ const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto
 const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 function getMonthWeeks(year: number, month: number) {
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  const firstDayOfMonth = new Date(year, month, 1);
+  const dayOfWeek = firstDayOfMonth.getDay();
+  const daysToSubtract = dayOfWeek >= 4 ? dayOfWeek - 4 : dayOfWeek + 3;
+  const startOfSem1 = new Date(year, month, 1 - daysToSubtract);
   const weeks: { number: number; start: Date; end: Date; label: string }[] = [];
-  let current = new Date(firstDay);
-  const dayOfWeek = current.getDay();
-  if (dayOfWeek !== 1) {
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    current.setDate(current.getDate() + diff);
-  }
-  let weekNum = 1;
-  while (current <= lastDay || weekNum === 1) {
-    const weekStart = new Date(current);
-    const weekEnd = new Date(current);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    const startStr = `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()].substring(0, 3)}`;
-    const endStr = `${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()].substring(0, 3)}`;
-    weeks.push({ number: weekNum, start: weekStart, end: weekEnd, label: `Semana ${weekNum} · ${startStr}-${endStr}` });
-    current.setDate(current.getDate() + 7);
-    weekNum++;
-    if (weekNum > 6) break;
+  for (let i = 0; i < 6; i++) {
+    const start = new Date(startOfSem1);
+    start.setDate(startOfSem1.getDate() + i * 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    if (i > 0 && start > new Date(year, month + 1, 0)) break;
+    const startStr = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
+    const endStr = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
+    weeks.push({
+      number: i + 1,
+      start,
+      end,
+      label: `Semana ${i + 1} · ${startStr}-${endStr}`,
+    });
   }
   return weeks;
 }
@@ -151,10 +150,15 @@ const ModulosT4: React.FC = () => {
 
   const handleExportPDF = () => {
     if (!activeWeek) return;
-    const startDay = String(activeWeek.start.getDate()).padStart(2, '0');
-    const endDay = String(activeWeek.end.getDate()).padStart(2, '0');
-    const monthName = MONTHS_LOWER[activeWeek.end.getMonth()];
-    const yr = activeWeek.end.getFullYear();
+    // Para el PDF, el rango es sábado a viernes (jueves+2 = sábado, miércoles+2 = viernes)
+    const pdfStart = new Date(activeWeek.start);
+    pdfStart.setDate(pdfStart.getDate() + 2);
+    const pdfEnd = new Date(activeWeek.end);
+    pdfEnd.setDate(pdfEnd.getDate() + 2);
+    const startDay = String(pdfStart.getDate()).padStart(2, '0');
+    const endDay = String(pdfEnd.getDate()).padStart(2, '0');
+    const monthName = MONTHS_LOWER[pdfEnd.getMonth()];
+    const yr = pdfEnd.getFullYear();
     const dateRange = `${startDay} al ${endDay} de ${monthName} ${yr}`;
 
     const html = `
