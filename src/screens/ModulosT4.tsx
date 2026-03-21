@@ -150,10 +150,15 @@ const ModulosT4: React.FC = () => {
 
   const handleExportPDF = () => {
     if (!activeWeek) return;
-    const startDay = String(activeWeek.start.getDate()).padStart(2, '0');
-    const endDay = String(activeWeek.end.getDate()).padStart(2, '0');
-    const monthName = MONTHS_LOWER[activeWeek.end.getMonth()];
-    const yr = activeWeek.end.getFullYear();
+    // Para el PDF, el rango es sábado a viernes (jueves+2 = sábado, miércoles+2 = viernes)
+    const pdfStart = new Date(activeWeek.start);
+    pdfStart.setDate(pdfStart.getDate() + 2);
+    const pdfEnd = new Date(activeWeek.end);
+    pdfEnd.setDate(pdfEnd.getDate() + 2);
+    const startDay = String(pdfStart.getDate()).padStart(2, '0');
+    const endDay = String(pdfEnd.getDate()).padStart(2, '0');
+    const monthName = MONTHS_LOWER[pdfEnd.getMonth()];
+    const yr = pdfEnd.getFullYear();
     const dateRange = `${startDay} al ${endDay} de ${monthName} ${yr}`;
 
     const html = `
