@@ -409,8 +409,11 @@ const Powers: React.FC = () => {
         ))}
       </Tabs>
 
-      {/* Save */}
-      <div className="flex justify-end">
+      {/* Save & Export */}
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" onClick={handleExportPDF} className="gap-2">
+          <FileDown size={16} /> Exportar PDF
+        </Button>
         <Button onClick={handleSave} disabled={saving} className="gap-2">
           <Save size={16} /> {saving ? 'Guardando...' : 'Guardar'}
         </Button>
