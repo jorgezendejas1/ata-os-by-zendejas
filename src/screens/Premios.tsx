@@ -52,6 +52,15 @@ function formatDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function calcAdcScore(adcPct: number): number {
+  if (adcPct === 0) return 10;
+  if (adcPct <= 1) return 8;
+  if (adcPct <= 3) return 6;
+  if (adcPct <= 5) return 4;
+  if (adcPct <= 8) return 2;
+  return 0;
+}
+
 interface PremioEntry {
   company_id: string;
   eficiencia: number;
@@ -62,6 +71,19 @@ interface PremioEntry {
   adc_score: number;
   total_score: number;
   lugar: number;
+}
+
+function calcTotal(e: PremioEntry, terminal: string): number {
+  const base = e.eficiencia + e.show_factor + e.asistencia_score + e.adc_score;
+  return Math.round((terminal === 'T3' ? base + e.gerente_pw1 : base) * 10) / 10;
+}
+
+function rankEntries(entries: PremioEntry[]): PremioEntry[] {
+  const sorted = [...entries].sort((a, b) => b.total_score - a.total_score);
+  return entries.map(e => ({
+    ...e,
+    lugar: sorted.findIndex(s => s.company_id === e.company_id) + 1,
+  }));
 }
 
 const Premios: React.FC = () => {
@@ -90,7 +112,6 @@ const Premios: React.FC = () => {
       const weekStart = formatDateStr(activeWeek.start);
       const weekEnd = formatDateStr(activeWeek.end);
 
-      // Load existing premios_entries
       const { data: existingEntries } = await supabase
         .from('premios_entries')
         .select('*')
@@ -99,7 +120,6 @@ const Premios: React.FC = () => {
         .eq('week_number', weekNumber)
         .eq('terminal_id', terminal);
 
-      // Load attendance records for the week range
       const { data: attendanceData } = await supabase
         .from('attendance_records')
         .select('*')
@@ -107,28 +127,23 @@ const Premios: React.FC = () => {
         .gte('dateRegistered', weekStart)
         .lte('dateRegistered', weekEnd);
 
-      // Load promoters for this terminal
       const allPromoters = await getPromoters();
       const terminalPromoters = allPromoters.filter(p => p.terminal_id === terminal);
 
-      // Load ADC records for each company this week
       const adcByCompany: Record<string, AdcRecord[]> = {};
       for (const c of COMPANIES) {
         adcByCompany[c.id] = await getAdcRecords(month, year, weekNumber, c.id);
       }
 
-      // Build entries for each company
       const newEntries: PremioEntry[] = COMPANIES.map(company => {
         const existing = (existingEntries || []).find((e: any) => e.company_id === company.id);
 
-        // Calc asistencia %
         const companyAttendance = (attendanceData || []).filter((r: any) => r.companyId === company.id);
         const validRecords = companyAttendance.filter((r: any) => r.plannedCount && r.plannedCount > 0);
         const asistencia = validRecords.length > 0
           ? validRecords.reduce((sum: number, r: any) => sum + (r.promoterCount / r.plannedCount) * 100, 0) / validRecords.length
           : 0;
 
-        // Calc % ADC
         const companyPromoters = terminalPromoters.filter(p => p.company_id === company.id);
         const companyAdcs = (adcByCompany[company.id] || []).filter(a => a.terminal_id === terminal);
         const adcPct = companyPromoters.length > 0
@@ -138,33 +153,25 @@ const Premios: React.FC = () => {
         const eficiencia = existing ? Number(existing.eficiencia) : 0;
         const show_factor = existing ? Number(existing.show_factor) : 0;
         const gerente_pw1 = existing ? Number(existing.gerente_pw1) : 0;
-        const adc_score = existing ? Number(existing.adc_score) : 0;
+        const roundedAdcPct = Math.round(adcPct * 10) / 10;
+        const adc_score = calcAdcScore(roundedAdcPct);
 
-        const total = terminal === 'T3'
-          ? eficiencia + show_factor + gerente_pw1 + Math.round(asistencia * 10) / 10 + adc_score
-          : eficiencia + show_factor + Math.round(asistencia * 10) / 10 + adc_score;
-
-        return {
+        const entry: PremioEntry = {
           company_id: company.id,
           eficiencia,
           show_factor,
           gerente_pw1,
           asistencia_score: Math.round(asistencia * 10) / 10,
-          adc_pct: Math.round(adcPct * 10) / 10,
+          adc_pct: roundedAdcPct,
           adc_score,
-          total_score: Math.round(total * 10) / 10,
+          total_score: 0,
           lugar: 0,
         };
+        entry.total_score = calcTotal(entry, terminal);
+        return entry;
       });
 
-      // Rank
-      const sorted = [...newEntries].sort((a, b) => b.total_score - a.total_score);
-      sorted.forEach((entry, i) => {
-        const original = newEntries.find(e => e.company_id === entry.company_id)!;
-        original.lugar = i + 1;
-      });
-
-      setEntries(newEntries);
+      setEntries(rankEntries(newEntries));
     } catch (err) {
       console.error('Error loading premios:', err);
     } finally {
@@ -179,18 +186,10 @@ const Premios: React.FC = () => {
       const updated = prev.map(e => {
         if (e.company_id !== companyId) return e;
         const newE = { ...e, [field]: value };
-        const total = terminal === 'T3'
-          ? newE.eficiencia + newE.show_factor + newE.gerente_pw1 + newE.asistencia_score + newE.adc_score
-          : newE.eficiencia + newE.show_factor + newE.asistencia_score + newE.adc_score;
-        newE.total_score = Math.round(total * 10) / 10;
+        newE.total_score = calcTotal(newE, terminal);
         return newE;
       });
-      // Re-rank
-      const sorted = [...updated].sort((a, b) => b.total_score - a.total_score);
-      return updated.map(e => ({
-        ...e,
-        lugar: sorted.findIndex(s => s.company_id === e.company_id) + 1,
-      }));
+      return rankEntries(updated);
     });
   };
 
@@ -198,8 +197,6 @@ const Premios: React.FC = () => {
     if (!activeWeek) return;
     setSaving(true);
     try {
-      const weekStart = formatDateStr(activeWeek.start);
-      const weekEnd = formatDateStr(activeWeek.end);
       const records = entries.map(e => ({
         month, year, week_number: weekNumber,
         terminal_id: terminal,
@@ -234,7 +231,6 @@ const Premios: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 rounded-2xl">
           <Trophy className="text-amber-600 dark:text-amber-400" size={28} />
@@ -245,7 +241,6 @@ const Premios: React.FC = () => {
         </div>
       </div>
 
-      {/* Selectors */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="w-36">
           <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Mes</label>
@@ -274,7 +269,6 @@ const Premios: React.FC = () => {
         </Button>
       </div>
 
-      {/* Terminal Tabs */}
       <Tabs value={terminal} onValueChange={v => setTerminal(v as 'T3' | 'T4')}>
         <TabsList>
           <TabsTrigger value="T3" className="font-black text-xs uppercase tracking-wider">Terminal 3 · Máx 60pts</TabsTrigger>
@@ -282,41 +276,43 @@ const Premios: React.FC = () => {
         </TabsList>
 
         <TabsContent value="T3">
-          <ScoreTable
-            entries={entries}
-            terminal="T3"
-            points={T3_POINTS}
-            showGerentePW1={true}
-            onUpdate={updateEntry}
-            getCompany={getCompany}
-          />
+          <ScoreTable entries={entries} terminal="T3" points={T3_POINTS} showGerentePW1={true} onUpdate={updateEntry} getCompany={getCompany} />
         </TabsContent>
         <TabsContent value="T4">
-          <ScoreTable
-            entries={entries}
-            terminal="T4"
-            points={T4_POINTS}
-            showGerentePW1={false}
-            onUpdate={updateEntry}
-            getCompany={getCompany}
-          />
+          <ScoreTable entries={entries} terminal="T4" points={T4_POINTS} showGerentePW1={false} onUpdate={updateEntry} getCompany={getCompany} />
         </TabsContent>
       </Tabs>
 
-      {/* Save */}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} className="gap-2">
           <Save size={16} /> {saving ? 'Guardando...' : 'Guardar semana'}
         </Button>
       </div>
 
-      {/* Points reference */}
       <div className="bg-muted/50 rounded-2xl p-4 border">
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Tabla de puntos — {terminal}</p>
         <div className="flex flex-wrap gap-2">
           {points.map((pts, i) => (
             <span key={i} className="text-xs font-bold px-3 py-1 bg-background rounded-xl border">
               {i + 1}° → {pts} pts
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-muted/50 rounded-2xl p-4 border">
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Jerarquía ADC Score</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: '0% ADC', score: 10 },
+            { label: '≤1%', score: 8 },
+            { label: '≤3%', score: 6 },
+            { label: '≤5%', score: 4 },
+            { label: '≤8%', score: 2 },
+            { label: '>8%', score: 0 },
+          ].map((r, i) => (
+            <span key={i} className="text-xs font-bold px-3 py-1 bg-background rounded-xl border">
+              {r.label} → {r.score} pts
             </span>
           ))}
         </div>
@@ -345,7 +341,10 @@ const ScoreTable: React.FC<ScoreTableProps> = ({ entries, terminal, points, show
             <TableHead className="text-[10px] font-black uppercase tracking-widest w-10">#</TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest">Empresa</TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Eficiencia</TableHead>
-            <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Show Factor</TableHead>
+            <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">
+              <div>Show Factor</div>
+              <div className="text-[8px] font-medium text-muted-foreground normal-case tracking-normal">(en %)</div>
+            </TableHead>
             {showGerentePW1 && <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Gte PW1</TableHead>}
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Asist %</TableHead>
             <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">% ADC</TableHead>
@@ -386,7 +385,7 @@ const ScoreTable: React.FC<ScoreTableProps> = ({ entries, terminal, points, show
                 {showGerentePW1 && (
                   <TableCell className="text-center">
                     <Input
-                      type="number" step="0.1" min="0"
+                      type="number" step="1" min="0" max="10"
                       value={entry.gerente_pw1 || ''}
                       onChange={e => onUpdate(entry.company_id, 'gerente_pw1', Number(e.target.value) || 0)}
                       className="w-20 text-center text-sm mx-auto h-8"
@@ -400,12 +399,7 @@ const ScoreTable: React.FC<ScoreTableProps> = ({ entries, terminal, points, show
                   <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{entry.adc_pct.toFixed(1)}%</span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Input
-                    type="number" step="0.1" min="0"
-                    value={entry.adc_score || ''}
-                    onChange={e => onUpdate(entry.company_id, 'adc_score', Number(e.target.value) || 0)}
-                    className="w-20 text-center text-sm mx-auto h-8"
-                  />
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{entry.adc_score}</span>
                 </TableCell>
                 <TableCell className="text-center">
                   <span className="text-lg font-black">{entry.total_score.toFixed(1)}</span>
