@@ -223,6 +223,77 @@ const Powers: React.FC = () => {
 
   const getCompany = (id: string) => COMPANIES_ALL.find(c => c.id === id);
 
+  const handleExportPDF = () => {
+    if (!activeWeek) return;
+    const termLabel = terminalConfig.label;
+    const startD = activeWeek.start;
+    const endD = activeWeek.end;
+    const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const dateRange = `${startD.getDate()} al ${endD.getDate()} de ${MONTHS_LOWER[endD.getMonth()]} ${endD.getFullYear()}`;
+
+    const dayHeaders = weekDays.map(d => `<th style="padding:6px 8px;text-align:center;border:1px solid #ccc;font-size:11px;">${DAY_NAMES[d.getDay()]}<br/>${d.getDate()}/${d.getMonth()+1}</th>`).join('');
+
+    const bodyRows = allowedCompanies.map(company => {
+      const cells = weekDays.map(d => {
+        const val = grid[company.id]?.[formatDateStr(d)] ?? 0;
+        return `<td style="padding:6px 8px;text-align:center;border:1px solid #ccc;font-size:12px;">${val}</td>`;
+      }).join('');
+      const total = getCompanyWeekTotal(company.id);
+      return `<tr>
+        <td style="padding:6px 10px;border:1px solid #ccc;background:${company.color};color:${company.textColor};font-weight:bold;font-size:12px;">${company.label}</td>
+        ${cells}
+        <td style="padding:6px 8px;text-align:center;border:1px solid #ccc;font-weight:bold;background:#f0f0f0;font-size:12px;">${total}</td>
+      </tr>`;
+    }).join('');
+
+    const totalRow = weekDays.map(d => {
+      return `<td style="padding:6px 8px;text-align:center;border:1px solid #ccc;font-weight:bold;font-size:12px;">${getDayTotal(formatDateStr(d))}</td>`;
+    }).join('');
+    const grandTotal = weekDays.reduce((s, d) => s + getDayTotal(formatDateStr(d)), 0);
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:20px;">
+        <h1 style="text-align:center;font-size:20px;margin-bottom:4px;">POWERS — ${termLabel}</h1>
+        <p style="text-align:center;font-size:13px;color:#555;margin-bottom:16px;">Semana ${weekNumber} · ${dateRange} · ${MONTHS[month]} ${year}</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#333;color:#fff;">
+              <th style="padding:6px 10px;text-align:left;border:1px solid #ccc;font-size:11px;">Empresa</th>
+              ${dayHeaders}
+              <th style="padding:6px 8px;text-align:center;border:1px solid #ccc;font-size:11px;background:#555;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+          <tfoot>
+            <tr style="background:#e8e8e8;">
+              <td style="padding:6px 10px;border:1px solid #ccc;font-weight:bold;font-size:12px;">TOTAL</td>
+              ${totalRow}
+              <td style="padding:6px 8px;text-align:center;border:1px solid #ccc;font-weight:bold;font-size:12px;background:#d0d0d0;">${grandTotal}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+
+    const w = window as any;
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    const filename = `Powers_${termLabel}_Sem${weekNumber}_${MONTHS[month]}${year}.pdf`;
+    if (w.html2pdf) {
+      w.html2pdf().set({
+        margin: 10,
+        filename,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'landscape' },
+      }).from(container).save().then(() => {
+        document.body.removeChild(container);
+      });
+    } else {
+      showToast('html2pdf no disponible', 'error');
+      document.body.removeChild(container);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
