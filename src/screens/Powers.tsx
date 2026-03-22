@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { Save, Zap, BarChart3 } from 'lucide-react';
+import { Save, Zap, BarChart3, FileDown } from 'lucide-react';
 
 const COMPANIES_ALL = [
   { id: 'c1', label: 'UVC', color: '#92d050', textColor: 'black' },
