@@ -1,567 +1,695 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { getRecords, getStaffing, getEmailConfig, getEmailLogs } from '../services/db';
-import { User, AttendanceRecord, EmailAutomationConfig, SentEmailLog, Zone } from '../types';
-import { COMPANIES, TERMINALS, ZONES } from '../constants';
-import { Printer, Filter, ChevronDown, FileSpreadsheet, TrendingUp, Mail, Loader2, Download, LayoutDashboard, FileText, CheckSquare, Square, RefreshCw, X, ChevronRight, ChevronLeft, Wand2, Target, BarChart3, PieChart } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { supabase } from '@/integrations/supabase/client';
+import { AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
+import { COMPANIES, TERMINALS, ZONES, SCHEDULES } from '../constants';
+import { getRecords, getStaffing, getTargets, showToast } from '../services/db';
+import { FileDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 
-// Declaración para la librería html2pdf cargada en index.html
-declare const html2pdf: any;
+/* ──────────────────────────  CONSTANTS  ────────────────────────── */
 
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio',
+  'julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-const getMonthWeeks = (year: number, monthIndex: number) => {
-  const firstDayOfMonth = new Date(year, monthIndex, 1);
-  const dayOfWeek = firstDayOfMonth.getDay(); 
+const COMPANY_META: Record<string, { short: string; bg: string; text: string }> = {
+  c1: { short: 'UVC',   bg: '#92d050', text: '#000' },
+  c2: { short: 'XCA',   bg: '#948a54', text: '#fff' },
+  c3: { short: 'VDP',   bg: '#f8cbad', text: '#000' },
+  c4: { short: 'CID',   bg: '#bdd7ee', text: '#000' },
+  c5: { short: 'KRY',   bg: '#ffff00', text: '#000' },
+  c6: { short: 'KRY G', bg: '#afafaf', text: '#000' },
+};
 
-  let daysToSubtract = 0;
-  if (dayOfWeek >= 4) {
-    daysToSubtract = dayOfWeek - 4;
-  } else {
-    daysToSubtract = dayOfWeek + 3;
-  }
+const TERMINAL_DISPLAY: Record<string, string> = {
+  t2n: 'T2 NACIONAL', t2i: 'T2 INTERNACIONAL', t3: 'TERMINAL 3', t4: 'TERMINAL 4',
+};
 
-  const startOfSem1 = new Date(year, monthIndex, 1 - daysToSubtract);
-  
-  const weeks = [];
-  for (let i = 0; i < 5; i++) {
-    const start = new Date(startOfSem1);
-    start.setDate(startOfSem1.getDate() + (i * 7));
-    
+const FIRST_LAST: Record<string, { first: string; last: string }> = {
+  t2i: { first: 'h_1000', last: 'h_2100' },
+  t3:  { first: 'h_0900', last: 'h_2030' },
+  t4:  { first: 'h_0900', last: 'h_2100' },
+};
+
+const RULE50_TERMINALS = new Set(['t2i', 't3', 't4']);
+
+/* ──────────────────────────  WEEK HELPER  ────────────────────────── */
+
+function getMonthWeeks(year: number, month: number) {
+  const firstDay = new Date(year, month, 1);
+  const dow = firstDay.getDay();
+  const daysBack = dow >= 4 ? dow - 4 : dow + 3;
+  const sem1 = new Date(year, month, 1 - daysBack);
+  const weeks: { number: number; start: Date; end: Date; label: string; days: Date[] }[] = [];
+  for (let i = 0; i < 6; i++) {
+    const start = new Date(sem1);
+    start.setDate(sem1.getDate() + i * 7);
     const end = new Date(start);
-    end.setDate(start.getDate() + 6); 
-    
-    weeks.push({
-      id: i,
-      label: `Semana ${i + 1}`,
-      weekId: `${year}-W${Math.ceil((start.getDate() + start.getDay()) / 7)}`,
-      start,
-      end,
-      days: Array.from({ length: 7 }, (_, d) => {
-        const dayDate = new Date(start);
-        dayDate.setDate(start.getDate() + d);
-        return dayDate;
-      })
+    end.setDate(start.getDate() + 6);
+    if (i > 0 && start > new Date(year, month + 1, 0)) break;
+    const s = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
+    const e = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
+    const days = Array.from({ length: 7 }, (_, d) => {
+      const dd = new Date(start);
+      dd.setDate(start.getDate() + d);
+      return dd;
     });
+    weeks.push({ number: i + 1, start, end, label: `Semana ${i + 1} · ${s}–${e}`, days });
   }
-
-  const lastWeek = weeks[4];
-  const lastDayOfMonth = new Date(year, monthIndex + 1, 0); 
-  if (lastWeek.end > lastDayOfMonth) return weeks.slice(0, 4);
   return weeks;
-};
+}
 
-const WeeklyTrendChart = ({ data }: { data: { label: string, actual: number, planned: number }[] }) => {
-  if (data.length === 0) return null;
-  const height = 200, width = 600, padding = 40;
-  const graphWidth = width - padding * 2, graphHeight = height - padding * 2;
-  const maxVal = Math.max(...data.map(d => Math.max(d.actual, d.planned)), 10) * 1.2; 
-  const getX = (i: number) => {
-    if (data.length <= 1) return width / 2;
-    return padding + (i * (graphWidth / (data.length - 1)));
-  }
-  const getY = (v: number) => height - padding - (v / maxVal) * graphHeight;
+function fmtDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
-  let actualPath = "";
-  let plannedPath = "";
-  data.forEach((d, i) => {
-      const x = getX(i), yA = getY(d.actual), yP = getY(d.planned);
-      if (i === 0) { actualPath += `M ${x} ${yA}`; plannedPath += `M ${x} ${yP}`; }
-      else { actualPath += ` L ${x} ${yA}`; plannedPath += ` L ${x} ${yP}`; }
-  });
+function semanticColor(pct: number) {
+  if (pct >= 70) return { main: '#185FA5', line: '#B5D4F4', bg: '#E6F1FB' };
+  if (pct >= 50) return { main: '#BA7517', line: '#FAC775', bg: '#FFF8E6' };
+  return { main: '#A32D2D', line: '#F7C1C1', bg: '#FFF0F0' };
+}
 
-  return (
-      <div className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 md:p-8 shadow-sm mb-8 break-inside-avoid transition-colors">
-          <div className="flex justify-between items-center mb-6">
-              <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                  <TrendingUp size={14} className="text-blue-600"/>
-                  Tendencia Semanal
-              </h4>
-              <div className="flex gap-4 text-[9px] font-black uppercase">
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-blue-600"></div><span className="dark:text-gray-400">Real</span></div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full border-2 border-gray-400 dark:border-gray-600 border-dashed"></div><span className="dark:text-gray-400">Meta</span></div>
-              </div>
-          </div>
-          <div className="w-full aspect-[3/1] md:aspect-[4/1]">
-             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
-                 {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
-                     const y = height - padding - (tick * graphHeight);
-                     return <line key={tick} x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f3f4f6" className="dark:stroke-gray-800" strokeWidth="1" />;
-                 })}
-                 <path d={plannedPath} fill="none" stroke="#9ca3af" className="dark:stroke-gray-600" strokeWidth="2" strokeDasharray="5,5" />
-                 <path d={actualPath} fill="none" stroke="#2563eb" strokeWidth="3" />
-                 {data.map((d, i) => (
-                     <g key={i}>
-                         <circle cx={getX(i)} cy={getY(d.actual)} r="5" fill="#2563eb" stroke="white" className="dark:stroke-gray-900" strokeWidth="2" />
-                         <text x={getX(i)} y={height - padding + 18} textAnchor="middle" fontSize="10" className="fill-gray-400 dark:fill-gray-500 font-bold uppercase tracking-tighter">{d.label}</text>
-                     </g>
-                 ))}
-             </svg>
-          </div>
-      </div>
-  );
-};
+/* ──────────────────────────  COMPONENT  ────────────────────────── */
 
-interface ReportsProps { user: User; }
+interface ReportsProps { user: { role: string; assignedTerminals?: string[] } }
 
 const Reports: React.FC<ReportsProps> = ({ user }) => {
   const now = new Date();
-  const [selectedDateStr, setSelectedDateStr] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-  const [selectedWeekIdx, setSelectedWeekIdx] = useState(0); 
-  const [selectedCompanyId, setSelectedCompanyId] = useState('all');
-  const [selectedTerminalIds, setSelectedTerminalIds] = useState<string[]>([]);
-  const [isTerminalDropdownOpen, setIsTerminalDropdownOpen] = useState(false);
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
+  const [activeWeekIdx, setActiveWeekIdx] = useState(0);
+  const [companyId, setCompanyId] = useState('c1');
   const [isExporting, setIsExporting] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [staffing, setStaffing] = useState<any[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [viewMode, setViewMode] = useState<'DASHBOARD' | 'PDF'>('DASHBOARD');
+  const [staffing, setStaffing] = useState<StaffingEntry[]>([]);
+  const [targets, setTargets] = useState<PositionTarget[]>([]);
 
-  const selectedYear = useMemo(() => parseInt(selectedDateStr.split('-')[0]), [selectedDateStr]);
-  const selectedMonth = useMemo(() => parseInt(selectedDateStr.split('-')[1]) - 1, [selectedDateStr]);
+  const weeks = useMemo(() => getMonthWeeks(year, month), [year, month]);
+
+  useEffect(() => { setActiveWeekIdx(0); }, [year, month]);
 
   useEffect(() => {
-    const loadAll = async () => {
-      setIsLoadingData(true);
+    (async () => {
+      setLoading(true);
       try {
-        const [recs, stff] = await Promise.all([
-          getRecords(),
-          getStaffing('all', selectedYear, selectedMonth)
-        ]);
-        setRecords(recs);
-        setStaffing(stff);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-    loadAll();
-  }, [selectedYear, selectedMonth]); // Recarga al cambiar periodo
+        const [r, s, t] = await Promise.all([getRecords(), getStaffing('all', year, month), getTargets()]);
+        setRecords(r);
+        setStaffing(s);
+        setTargets(t);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    })();
+  }, [year, month]);
 
-  const visibleTerminals = useMemo(() => {
-    // Master can see archived terminals for historical reports
-    const isMaster = user.role === 'MASTER';
-    const baseTerminals = isMaster ? TERMINALS : TERMINALS.filter(t => t.isActive);
-    
-    if (user.role === 'REPORTES' && user.assignedTerminals?.length) {
-      return baseTerminals.filter(t => user.assignedTerminals!.includes(t.id));
-    }
-    return baseTerminals;
-  }, [user]);
+  const activeWeek = weeks[Math.min(activeWeekIdx, weeks.length - 1)];
 
-  const availableTerminalsForSelectedCompany = useMemo(() => {
-    if (selectedCompanyId === 'all') return visibleTerminals;
-    return visibleTerminals.filter(t => !t.allowedCompanies || t.allowedCompanies.includes(selectedCompanyId));
-  }, [visibleTerminals, selectedCompanyId]);
+  /* Active terminals for current company (excluding T1) */
+  const companyTerminals = useMemo(() =>
+    TERMINALS.filter(t => t.isActive && t.id !== 't1' && t.allowedCompanies?.includes(companyId)),
+  [companyId]);
 
-  useEffect(() => {
-    const validSelection = selectedTerminalIds.filter(id => availableTerminalsForSelectedCompany.some(t => t.id === id));
-    if (validSelection.length === 0 && availableTerminalsForSelectedCompany.length > 0) {
-        setSelectedTerminalIds(availableTerminalsForSelectedCompany.map(t => t.id));
-    } else {
-        setSelectedTerminalIds(validSelection);
-    }
-  }, [availableTerminalsForSelectedCompany]);
+  const companyTerminalNames = useMemo(() =>
+    companyTerminals.map(t => {
+      if (t.id === 't2n') return 'Nacional';
+      if (t.id === 't2i') return 'T2';
+      return t.name;
+    }).join(' · '),
+  [companyTerminals]);
 
-  const weeks = useMemo(() => getMonthWeeks(selectedYear, selectedMonth), [selectedYear, selectedMonth]);
-  
-  const safeWeekIdx = Math.min(selectedWeekIdx, weeks.length - 1);
-  const weeksToDisplay = useMemo(() => weeks.slice(0, safeWeekIdx + 1), [weeks, safeWeekIdx]);
+  /* ── HELPERS ── */
 
-  const getEffectiveCountInfo = (record: AttendanceRecord): { value: number, isRounded: boolean } => {
-    const terminal = TERMINALS.find(t => t.id === record.terminalId);
-    if (!terminal?.allowedSchedules?.length) return { value: record.promoterCount, isRounded: false };
-    
-    const firstSchedId = terminal.allowedSchedules[0];
-    const lastSchedId = terminal.allowedSchedules[terminal.allowedSchedules.length - 1];
-    
-    const isCriticalSchedule = record.scheduleId === firstSchedId || record.scheduleId === lastSchedId;
-    const planned = record.plannedCount || 0;
-    
-    if (isCriticalSchedule && planned > 0 && record.promoterCount > (planned * 0.5) && record.promoterCount < planned) {
-      return { value: planned, isRounded: true };
-    }
-    
-    return { value: record.promoterCount, isRounded: false };
+  const getTarget = (termId: string, zoneId: string, cId: string) => {
+    const t = targets.find(x => x.terminalId === termId && x.zoneId === zoneId && x.companyId === cId);
+    return t ? Number(t.count) : 0;
   };
 
-  const calculateMetrics = (termId: string, zoneId: string, companyId: string, week: { days: Date[] }) => {
-    const daily = week.days.map(day => {
-      const dStr = day.toISOString().split('T')[0];
-      const dayRecs = records.filter(r => r.companyId === companyId && r.terminalId === termId && (zoneId !== 'default' ? r.zoneId === zoneId : true) && r.dateRegistered === dStr);
-      
-      let totalEffectiveValue = 0;
-      let roundingsCount = 0;
-      
-      if (dayRecs.length > 0) {
-        dayRecs.forEach(r => {
-          const info = getEffectiveCountInfo(r);
-          totalEffectiveValue += info.value;
-          if (info.isRounded) roundingsCount++;
-        });
-      }
-
-      const actual = dayRecs.length ? totalEffectiveValue / dayRecs.length : 0;
-      const stffEntry = staffing.find(s => s.date === dStr && s.terminalId === termId && s.zoneId === zoneId && s.companyId === companyId);
-      const planned = stffEntry ? stffEntry.count : 0;
-      
-      return { actual, planned, empty: Math.max(0, planned - actual), hasRounding: roundingsCount > 0 };
-    });
-    
-    const avgA = daily.reduce<number>((a, b) => a + b.actual, 0) / (daily.length || 1);
-    const avgP = daily.reduce<number>((a, b) => a + b.planned, 0) / (daily.length || 1);
-    const weekHasRounding = daily.some(d => d.hasRounding);
-
-    return { daily, weeklyAvg: { actual: avgA, planned: avgP, empty: Math.max(0, avgP - avgA), hasRounding: weekHasRounding } };
+  const getStaffingForDay = (date: string, termId: string, zoneId: string, cId: string) => {
+    const s = staffing.find(x => x.date === date && x.terminalId === termId && x.zoneId === zoneId && x.companyId === cId);
+    return s ? Number(s.count) : 0;
   };
 
-  const getReportData = (companyId: string, customTerminalIds?: string[]) => {
-    const targetTerminalIds = customTerminalIds || selectedTerminalIds;
-    const terminalsData = visibleTerminals
-      .filter(t => targetTerminalIds.includes(t.id))
-      .filter(t => (!t.allowedCompanies || t.allowedCompanies.includes(companyId)))
-      .map(term => {
-        const zones = term.hasZones ? ZONES.filter(z => z.terminalId === term.id) : [{ id: 'default', name: 'General', terminalId: term.id } as Zone];
-        const zonesData = zones.map(zone => {
-            const wm = weeksToDisplay.map(w => calculateMetrics(term.id, zone.id, companyId, w));
-            const mA = wm.reduce<number>((s, x) => s + x.weeklyAvg.actual, 0) / (wm.length || 1);
-            const mP = wm.reduce<number>((s, x) => s + x.weeklyAvg.planned, 0) / (wm.length || 1);
-            return { zone, weeklyMetrics: wm, monthAvg: { actual: mA, planned: mP, empty: Math.max(0, mP - mA) } };
-        });
-        const wT = weeksToDisplay.map((_, i) => ({ 
-          actual: zonesData.reduce<number>((a, z) => a + z.weeklyMetrics[i].weeklyAvg.actual, 0), 
-          planned: zonesData.reduce<number>((a, z) => a + z.weeklyMetrics[i].weeklyAvg.planned, 0) 
-        }));
-        return { 
-          term, 
-          zonesData, 
-          terminalWeeklyTotals: wT, 
-          terminalMonthAvg: { 
-            actual: wT.reduce<number>((a, b) => a + b.actual, 0) / (wT.length || 1), 
-            planned: wT.reduce<number>((a, b) => a + b.planned, 0) / (wT.length || 1) 
-          } 
-        };
-    });
-    
-    if (terminalsData.length === 0) return { terminalsData: [], grandWeeklyTotals: weeksToDisplay.map(() => ({ actual: 0, planned: 0 })), grandMonthAvg: { actual: 0, planned: 0, empty: 0 } };
-    
-    const gWT = weeksToDisplay.map((_, i) => ({ 
-      actual: terminalsData.reduce<number>((a, t) => a + t.terminalWeeklyTotals[i].actual, 0), 
-      planned: terminalsData.reduce<number>((a, t) => a + t.terminalWeeklyTotals[i].planned, 0) 
-    }));
-    
-    const totalWeeks = gWT.length || 1;
-    const finalActual = gWT.reduce<number>((a, b) => a + b.actual, 0) / totalWeeks;
-    const finalPlanned = gWT.reduce<number>((a, b) => a + b.planned, 0) / totalWeeks;
-
-    return { 
-      terminalsData, 
-      grandWeeklyTotals: gWT, 
-      grandMonthAvg: { 
-        actual: finalActual, 
-        planned: finalPlanned, 
-        empty: Math.max(0, finalPlanned - finalActual) 
-      } 
-    };
-  };
-
-  const fmt = (n: number) => n.toFixed(2);
-
-  const handlePrint = async () => {
-    const element = document.getElementById('report-content');
-    if (!element) return;
-    setIsExporting(true);
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `Reporte_ATA_${selectedDateStr}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-    try {
-      const pdf = await html2pdf().from(element).set(opt).toPdf().get('pdf');
-      const blobUrl = URL.createObjectURL(pdf.output('blob'));
-      const printWindow = window.open(blobUrl, '_blank');
-      if (printWindow) { printWindow.addEventListener('load', () => { printWindow.print(); }); }
-    } catch (err) {
-      console.error(err);
-      window.print();
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    const element = document.getElementById('report-content');
-    if (!element) return;
-    setIsExporting(true);
-    const opt = { margin: 10, filename: `ATA_Report_${selectedDateStr}.pdf`, image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-    try { await html2pdf().from(element).set(opt).save(); } 
-    catch (err) { alert("Error al exportar PDF"); } 
-    finally { setIsExporting(false); }
-  };
-
-  const handleExportExcel = () => {
-    const dataForExcel: any[] = [];
-    const targetCompanies = COMPANIES.filter(c => selectedCompanyId === 'all' || c.id === selectedCompanyId);
-    targetCompanies.forEach(company => {
-        const { terminalsData } = getReportData(company.id);
-        terminalsData.forEach(t => {
-            t.zonesData.forEach(z => {
-                const row: any = {
-                    "Empresa": company.name,
-                    "Terminal": t.term.name,
-                    "Zona": z.zone.name === 'General' ? company.name : z.zone.name,
-                    "Promedio Mensual": z.monthAvg.actual.toFixed(2),
-                    "Meta Mensual": z.monthAvg.planned.toFixed(2),
-                    "KPI (%)": z.monthAvg.planned > 0 ? Math.round((z.monthAvg.actual / z.monthAvg.planned) * 100) : 100
-                };
-                z.weeklyMetrics.forEach((wm, idx) => { row[`S${idx + 1}`] = wm.weeklyAvg.actual.toFixed(2); });
-                dataForExcel.push(row);
-            });
-        });
-    });
-    const ws = XLSX.utils.json_to_sheet(dataForExcel);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Reporte JZL");
-    XLSX.writeFile(wb, `Reporte_JZL_${selectedDateStr}.xlsx`);
-  };
-
-  const RenderMetricsResponsive = ({ company, terminalsData }: { company: any, terminalsData: any[] }) => {
-    return (
-        <div className="space-y-6">
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-hidden rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900 transition-all">
-                <table className="w-full text-[10px] border-collapse">
-                    <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest border-b dark:border-gray-700">
-                            <th className="p-6 border-r dark:border-gray-700 text-left">TERMINAL / ZONA</th>
-                            {weeksToDisplay.map(w => <th key={w.id} className="p-6 border-r dark:border-gray-700 text-center">{w.label}</th>)}
-                            <th className="p-6 border-r dark:border-gray-700 bg-gray-900 text-white text-center">PROM.</th>
-                            <th className="p-6 bg-blue-600 text-white text-center">KPI%</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {terminalsData.map(t => (
-                            <React.Fragment key={t.term.id}>
-                                <tr className="bg-slate-50 dark:bg-blue-900/10"><td colSpan={weeksToDisplay.length + 3} className="p-4 px-6 font-black text-blue-900 dark:text-blue-400 uppercase text-[9px]">{t.term.name} {!t.term.isActive && <span className="ml-2 text-[8px] px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded font-black">ARCHIVADA</span>}</td></tr>
-                                {t.zonesData.map((z: any) => (
-                                    <tr key={z.zone.id} className="hover:bg-blue-50/20 transition-colors">
-                                        <td className="p-5 border-r dark:border-gray-800 pl-10 font-bold text-gray-700 dark:text-gray-300">{z.zone.name === 'General' ? company.name : z.zone.name}</td>
-                                        {z.weeklyMetrics.map((m: any, i: number) => (
-                                          <td key={i} className={`p-5 border-r dark:border-gray-800 text-center font-mono ${m.weeklyAvg.hasRounding ? 'text-blue-600 font-black' : 'dark:text-gray-400'}`}>
-                                            <div className="flex flex-col items-center gap-0.5">
-                                              {fmt(m.weeklyAvg.actual)}
-                                              {m.weeklyAvg.hasRounding && <Wand2 size={8} className="text-blue-400"/>}
-                                            </div>
-                                          </td>
-                                        ))}
-                                        <td className="p-5 border-r dark:border-gray-800 text-center font-black bg-gray-50/50 dark:bg-gray-800/30 text-gray-900 dark:text-white">{fmt(z.monthAvg.actual)}</td>
-                                        <td className={`p-5 text-center font-black bg-blue-50/20 ${z.monthAvg.actual / (z.monthAvg.planned || 1) >= 0.85 ? 'text-green-600' : 'text-amber-600'}`}>
-                                          {z.monthAvg.planned > 0 ? Math.round((z.monthAvg.actual / z.monthAvg.planned) * 100) : 100}%
-                                        </td>
-                                    </tr>
-                                ))}
-                            </React.Fragment>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Mobile Cards View */}
-            <div className="md:hidden space-y-6">
-                {terminalsData.map(t => (
-                    <div key={t.term.id} className="space-y-4">
-                        <div className="px-6 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-between mx-4">
-                            <span className="text-[10px] font-black text-blue-900 dark:text-blue-400 uppercase tracking-[0.2em]">{t.term.name} {!t.term.isActive && "(ARCHIVADA)"}</span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                        </div>
-                        <div className="px-4 space-y-4">
-                            {t.zonesData.map((z: any) => {
-                                const efficiency = z.monthAvg.planned > 0 ? (z.monthAvg.actual / z.monthAvg.planned) : 1;
-                                const isGood = efficiency >= 0.85;
-                                return (
-                                    <div key={z.zone.id} className="bg-white dark:bg-gray-900 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
-                                        <div className="flex justify-between items-start">
-                                            <div className="space-y-1">
-                                                <h5 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">
-                                                    {z.zone.name === 'General' ? company.name : z.zone.name}
-                                                </h5>
-                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Zona de Operación</p>
-                                            </div>
-                                            <div className={`px-4 py-2 rounded-2xl flex flex-col items-center ${isGood ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'}`}>
-                                                <span className="text-[8px] font-black uppercase mb-0.5">KPI%</span>
-                                                <span className="text-xl font-black leading-none">{Math.round(efficiency * 100)}%</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border dark:border-gray-800">
-                                            <div className="text-center border-r dark:border-gray-700">
-                                                <span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Prom. Real</span>
-                                                <span className="text-2xl font-black text-blue-600">{fmt(z.monthAvg.actual)}</span>
-                                            </div>
-                                            <div className="text-center">
-                                                <span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Meta Mensual</span>
-                                                <span className="text-2xl font-black text-gray-400">{fmt(z.monthAvg.planned)}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 h-[1px] bg-gray-100 dark:bg-gray-800"></div>
-                                                <p className="text-[9px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.3em] px-2">Desglose Semanal</p>
-                                                <div className="flex-1 h-[1px] bg-gray-100 dark:bg-gray-800"></div>
-                                            </div>
-                                            <div className="grid grid-cols-5 gap-2">
-                                                {z.weeklyMetrics.map((wm: any, i: number) => (
-                                                    <div key={i} className={`p-2.5 rounded-xl text-center border-2 transition-all ${wm.weeklyAvg.hasRounding ? 'bg-blue-50 border-blue-100 dark:bg-blue-900/30 dark:border-blue-800' : 'bg-white dark:bg-gray-900 border-gray-50 dark:border-gray-800'}`}>
-                                                        <span className="block text-[8px] font-bold text-gray-400 uppercase mb-1">S{i+1}</span>
-                                                        <div className="flex flex-col items-center gap-0.5">
-                                                            <span className={`text-xs font-black ${wm.weeklyAvg.hasRounding ? 'text-blue-600 dark:text-blue-400' : 'dark:text-white'}`}>
-                                                                {fmt(wm.weeklyAvg.actual)}
-                                                            </span>
-                                                            {wm.weeklyAvg.hasRounding && <Wand2 size={8} className="text-blue-400"/>}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
+  const getRecordsForDay = (date: string, termId: string, zoneId: string | null, cId: string, schedId?: string) => {
+    return records.filter(r =>
+      r.dateRegistered === date &&
+      r.terminalId === termId &&
+      r.companyId === cId &&
+      (zoneId && zoneId !== 'default' ? r.zoneId === zoneId : true) &&
+      (schedId ? r.scheduleId === schedId : true)
     );
   };
 
-  if (isLoadingData) return <div className="flex items-center justify-center p-40"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
+  /* Apply 50% rule for a single cell */
+  const apply50Rule = (real: number, planned: number, termId: string, schedId: string): { value: number; applied: boolean } => {
+    if (!RULE50_TERMINALS.has(termId)) return { value: real, applied: false };
+    const fl = FIRST_LAST[termId];
+    if (!fl) return { value: real, applied: false };
+    const isFirstOrLast = schedId === fl.first || schedId === fl.last;
+    if (!isFirstOrLast) return { value: real, applied: false };
+    if (planned > 0 && real >= planned * 0.5) return { value: planned, applied: true };
+    return { value: real, applied: false };
+  };
+
+  /* Compute weekly average for one terminal/zone/company across a week */
+  const weekAvg = (week: typeof activeWeek, termId: string, zoneId: string, cId: string) => {
+    const terminal = TERMINALS.find(t => t.id === termId);
+    const allowedScheds = terminal?.allowedSchedules || [];
+    let totalEffective = 0;
+    let totalPlanned = 0;
+    let dayCount = 0;
+
+    week.days.forEach(day => {
+      const dStr = fmtDate(day);
+      const planned = getStaffingForDay(dStr, termId, zoneId, cId);
+      const dayRecs = getRecordsForDay(dStr, termId, zoneId === 'default' ? null : zoneId, cId);
+
+      if (dayRecs.length > 0 || planned > 0) {
+        let dayEffective = 0;
+        // Sum across all schedules
+        allowedScheds.forEach(sid => {
+          const rec = dayRecs.find(r => r.scheduleId === sid);
+          if (rec) {
+            const { value } = apply50Rule(rec.promoterCount, planned, termId, sid);
+            dayEffective += value;
+          }
+        });
+        const schedCount = allowedScheds.length || 1;
+        totalEffective += dayEffective / schedCount;
+        totalPlanned += planned;
+        dayCount++;
+      }
+    });
+
+    const avg = dayCount > 0 ? totalEffective / dayCount : 0;
+    const avgPlanned = dayCount > 0 ? totalPlanned / dayCount : 0;
+    return { avg, avgPlanned };
+  };
+
+  /* Grand totals for company across all terminals for a given week */
+  const companyWeekTotal = (week: typeof activeWeek) => {
+    let sumAvg = 0, sumPlan = 0;
+    companyTerminals.forEach(t => {
+      const zones = t.hasZones ? ZONES.filter(z => z.terminalId === t.id) : [{ id: 'default', name: 'General', terminalId: t.id }];
+      zones.forEach(z => {
+        const { avg, avgPlanned } = weekAvg(week, t.id, z.id, companyId);
+        sumAvg += avg;
+        sumPlan += avgPlanned;
+      });
+    });
+    return { occupied: sumAvg, planned: sumPlan };
+  };
+
+  /* ── KPI DATA ── */
+  const activeTotal = useMemo(() => companyWeekTotal(activeWeek), [activeWeek, companyId, records, staffing, targets, companyTerminals]);
+  const prevTotal = useMemo(() => {
+    if (activeWeekIdx === 0) return null;
+    return companyWeekTotal(weeks[activeWeekIdx - 1]);
+  }, [activeWeekIdx, weeks, companyId, records, staffing, targets, companyTerminals]);
+
+  const activePct = activeTotal.planned > 0 ? (activeTotal.occupied / activeTotal.planned) * 100 : 0;
+  const prevPct = prevTotal && prevTotal.planned > 0 ? (prevTotal.occupied / prevTotal.planned) * 100 : null;
+  const trend = prevPct !== null ? activePct - prevPct : 0;
+
+  const monthAvgPct = useMemo(() => {
+    let sum = 0, count = 0;
+    weeks.forEach((w, i) => {
+      if (i > activeWeekIdx) return;
+      const t = companyWeekTotal(w);
+      if (t.planned > 0) { sum += (t.occupied / t.planned) * 100; count++; }
+    });
+    return count > 0 ? sum / count : 0;
+  }, [weeks, activeWeekIdx, companyId, records, staffing, targets, companyTerminals]);
+
+  /* ── COMPANY TABS ── */
+  const companyList = COMPANIES.filter(c => {
+    return TERMINALS.some(t => t.isActive && t.id !== 't1' && t.allowedCompanies?.includes(c.id));
+  });
+
+  /* ── EXPORT PDF ── */
+  const handleExportPDF = () => {
+    const el = document.getElementById('reports-content');
+    if (!el) return;
+    const w = window as any;
+    if (!w.html2pdf) { showToast('html2pdf no disponible', 'error'); return; }
+    setIsExporting(true);
+    const cm = COMPANY_META[companyId];
+    const filename = `${cm.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
+    w.html2pdf().set({
+      margin: 10,
+      filename,
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+    }).from(el).save().then(() => setIsExporting(false)).catch(() => { setIsExporting(false); showToast('Error al exportar', 'error'); });
+  };
+
+  /* ── SECTION 4: Attendance detail table data ── */
+
+  const getTermSchedules = (termId: string) => {
+    const terminal = TERMINALS.find(t => t.id === termId);
+    if (!terminal?.allowedSchedules) return [];
+    return terminal.allowedSchedules.map(sid => SCHEDULES.find(s => s.id === sid)).filter(Boolean) as typeof SCHEDULES;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 gap-2 text-muted-foreground">
+        <Loader2 className="animate-spin" size={20} />
+        <span>Cargando datos…</span>
+      </div>
+    );
+  }
+
+  const cm = COMPANY_META[companyId];
+  const companyName = COMPANIES.find(c => c.id === companyId)?.name || '';
 
   return (
-    <div className="max-w-7xl mx-auto pb-24">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 no-print px-4 md:px-0">
-        <div className="flex items-center gap-4">
-          <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-2xl text-blue-600 dark:text-blue-400">
-             <LayoutDashboard size={32} />
-          </div>
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Reportes Ejecutivos</h2>
-            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.4em]">JZL OS Data Intelligence</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-             <button onClick={handleExportExcel} className="flex-1 sm:flex-none bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 px-6 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2"><FileSpreadsheet size={18}/> Excel</button>
-             <button onClick={handlePrint} className="flex-1 sm:flex-none bg-gray-900 dark:bg-gray-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2"><Printer size={18}/> Imprimir</button>
-        </div>
+    <div className="space-y-4">
+      {/* ═══ SELECTORS ═══ */}
+      <div className="flex flex-wrap items-center gap-3">
+        <select value={month} onChange={e => setMonth(Number(e.target.value))}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+        </select>
+        <select value={year} onChange={e => setYear(Number(e.target.value))}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <select value={activeWeekIdx} onChange={e => setActiveWeekIdx(Number(e.target.value))}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          {weeks.map((w, i) => <option key={i} value={i}>{w.label}</option>)}
+        </select>
+        {!isExporting && (
+          <button onClick={handleExportPDF}
+            className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+            <FileDown size={16} /> Exportar PDF
+          </button>
+        )}
       </div>
 
-      <div className="bg-white dark:bg-gray-900 p-6 md:p-10 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 mb-8 mx-4 md:mx-0 no-print">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Periodo Mensual</label>
-            <input type="month" value={selectedDateStr} onChange={e => setSelectedDateStr(e.target.value)} className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500/50 rounded-2xl text-xs font-black dark:text-white outline-none" />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Corte de Semana</label>
-            <select value={selectedWeekIdx} onChange={e => setSelectedWeekIdx(parseInt(e.target.value))} className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500/50 rounded-2xl text-xs font-black dark:text-white outline-none">
-                {weeks.map((w, i) => <option key={i} value={i}>{w.label}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Socio Comercial</label>
-            <select value={selectedCompanyId} onChange={e => setSelectedCompanyId(e.target.value)} className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500/50 rounded-2xl text-xs font-black dark:text-white outline-none">
-              <option value="all">Consolidado Total</option>
-              {COMPANIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Terminales</label>
-              <button onClick={() => setIsTerminalDropdownOpen(!isTerminalDropdownOpen)} className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500/50 rounded-2xl text-xs flex justify-between items-center dark:text-white font-black uppercase">
-                  <span>{selectedTerminalIds.length} Seleccionadas</span>
-                  <ChevronDown size={18} />
-              </button>
-              {isTerminalDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-[2rem] shadow-2xl z-50 p-4">
-                      <div className="max-h-60 overflow-y-auto space-y-1">
-                          {availableTerminalsForSelectedCompany.map(t => (
-                              <button key={t.id} onClick={() => setSelectedTerminalIds(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])} className={`w-full p-4 flex items-center gap-4 rounded-xl text-[10px] uppercase font-black ${selectedTerminalIds.includes(t.id) ? 'bg-blue-600 text-white' : 'hover:bg-gray-50'}`}>
-                                  {selectedTerminalIds.includes(t.id) ? <CheckSquare size={16}/> : <Square size={16}/>}
-                                  {t.name} {!t.isActive && "(ARC)"}
-                              </button>
-                          ))}
-                      </div>
-                  </div>
-              )}
-          </div>
-        </div>
-      </div>
-
-      <div id="report-content" className="space-y-10">
-        {COMPANIES.filter(c => selectedCompanyId === 'all' || c.id === selectedCompanyId).map((company) => {
-            const { terminalsData, grandWeeklyTotals } = getReportData(company.id);
-            if (terminalsData.length === 0) return null;
-            
-            return (
-                <div key={company.id} className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    <div className="bg-white dark:bg-gray-900 p-8 md:p-16 rounded-[2.5rem] md:rounded-[3.5rem] border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden">
-                        <div className="text-center mb-12">
-                            <h1 className="text-3xl md:text-5xl font-black text-blue-900 dark:text-white uppercase tracking-tighter leading-none mb-4">AIRPORT TRAVEL ADVISORS</h1>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">S.A. DE C.V. • DEPARTAMENTO DE OPERACIONES</p>
-                        </div>
-                        
-                        <div className="bg-blue-900 text-white px-8 py-6 rounded-3xl font-black text-[10px] uppercase mb-12 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="flex items-center gap-4">
-                                <span className="bg-white/20 px-4 py-2 rounded-xl">{company.name}</span>
-                                <span className="text-white/60">REPORTE ESTADÍSTICO</span>
-                            </div>
-                            <span className="bg-white/10 px-4 py-2 rounded-xl">{MONTHS[selectedMonth]} {selectedYear}</span>
-                        </div>
-
-                        <WeeklyTrendChart data={grandWeeklyTotals.map((g, i) => ({ label: weeksToDisplay[i].label, actual: g.actual, planned: g.planned }))}/>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                            <div className="bg-blue-50 dark:bg-blue-900/10 p-10 rounded-[2.5rem] text-center border border-blue-100 dark:border-blue-800/50">
-                                <h4 className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-4">Promedio Real Mensual</h4>
-                                <div className="text-4xl md:text-6xl font-black text-blue-900 dark:text-blue-400 tracking-tighter">
-                                  {fmt(terminalsData.reduce((acc, t) => acc + t.terminalMonthAvg.actual, 0) / (terminalsData.length || 1))}
-                                </div>
-                            </div>
-                            <div className="bg-gray-50 dark:bg-gray-800/50 p-10 rounded-[2.5rem] text-center border dark:border-gray-800">
-                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Eficiencia de Ocupación</h4>
-                                <div className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tighter">
-                                    {Math.round((terminalsData.reduce((acc, t) => acc + t.terminalMonthAvg.actual, 0) / (terminalsData.reduce((acc, t) => acc + t.terminalMonthAvg.planned, 0) || 1)) * 100)}%
-                                </div>
-                            </div>
-                        </div>
-
-                        <RenderMetricsResponsive company={company} terminalsData={terminalsData} />
-
-                        <div className="mt-16 pt-16 border-t dark:border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-16 px-10">
-                            <div className="text-center">
-                                <div className="h-[1px] bg-gray-200 dark:bg-gray-700 w-full mb-4"></div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Gerencia de Operaciones</p>
-                            </div>
-                            <div className="text-center">
-                                <div className="h-[1px] bg-gray-200 dark:bg-gray-700 w-full mb-4"></div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Dirección Regional</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
+      {/* Company tabs */}
+      <div className="flex flex-wrap gap-1.5">
+        {companyList.map(c => {
+          const meta = COMPANY_META[c.id];
+          const active = c.id === companyId;
+          return (
+            <button key={c.id} onClick={() => setCompanyId(c.id)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: active ? meta.bg : 'transparent',
+                color: active ? meta.text : 'var(--color-text-secondary, #888)',
+                border: `1.5px solid ${active ? meta.bg : 'var(--color-border-tertiary, #e5e5e5)'}`,
+                opacity: active ? 1 : 0.7,
+              }}>
+              {meta.short}
+            </button>
+          );
         })}
+      </div>
+
+      {/* ═══ REPORT CONTENT (for PDF) ═══ */}
+      <div id="reports-content" className="space-y-6">
+
+        {/* ═══ SECTION 1 — HEADER + KPIs ═══ */}
+        <div className="rounded-xl p-5" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
+          <div className="flex justify-between items-start mb-5">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--color-text-secondary, #888)' }}>
+                Airport Travel Advisors S.A. de C.V.
+              </p>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-secondary, #888)' }}>
+                Reporte de posiciones ocupadas · Periodo {year}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xl font-medium">{cm.short}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary, #888)' }}>
+                Semana {activeWeek.number} · {activeWeek.start.getDate()} {MONTHS_LOWER[activeWeek.start.getMonth()]}–{activeWeek.end.getDate()} {MONTHS_LOWER[activeWeek.end.getMonth()]} {year}
+              </p>
+              <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium"
+                style={{ background: cm.bg, color: cm.text }}>
+                {companyTerminalNames}
+              </span>
+            </div>
+          </div>
+
+          {/* KPI cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard label="Pos. ocupadas" value={activeTotal.occupied.toFixed(1)} />
+            <KpiCard label="Pos. vacías" value={Math.max(0, activeTotal.planned - activeTotal.occupied).toFixed(1)} />
+            <KpiCard label={`% Sem ${activeWeek.number}`}
+              value={`${activePct.toFixed(1)}%`}
+              extra={trend !== 0 ? (
+                <span className="flex items-center gap-0.5 text-[10px] font-medium"
+                  style={{ color: trend > 0 ? '#185FA5' : '#A32D2D' }}>
+                  {trend > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                  {Math.abs(trend).toFixed(1)}%
+                </span>
+              ) : null} />
+            <KpiCard label="Promedio mes" value={`${monthAvgPct.toFixed(1)}%`} />
+          </div>
+        </div>
+
+        {/* ═══ SECTION 2 — WEEKLY HISTORY ═══ */}
+        <div>
+          <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
+            Histórico semanal
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {weeks.map((w, i) => {
+              const isFuture = i > activeWeekIdx;
+              const isActive = i === activeWeekIdx;
+              const isPast = i < activeWeekIdx;
+              const tot = !isFuture ? companyWeekTotal(w) : { occupied: 0, planned: 0 };
+              const pct = tot.planned > 0 ? (tot.occupied / tot.planned) * 100 : 0;
+              return (
+                <div key={i} className="flex-1 min-w-[120px] rounded-xl p-3 transition-all"
+                  style={{
+                    background: isActive ? '#E6F1FB' : isPast ? 'var(--color-background-secondary, #f9f9f9)' : 'transparent',
+                    border: isActive ? '1.5px solid #378ADD' : isFuture ? '1.5px dashed var(--color-border-tertiary, #ddd)' : '1px solid var(--color-border-tertiary, #eee)',
+                    opacity: isFuture ? 0.3 : 1,
+                  }}>
+                  <p className="text-[10px] font-medium" style={{ color: 'var(--color-text-secondary, #888)' }}>
+                    Sem {w.number} · {w.start.getDate()}–{w.end.getDate()} {MONTHS[w.end.getMonth()].substring(0, 3)}
+                  </p>
+                  {isActive && <span className="text-[9px] font-semibold" style={{ color: '#378ADD' }}>semana actual</span>}
+                  <p className="text-lg font-medium mt-1">{isFuture ? '—' : tot.occupied.toFixed(1)}</p>
+                  <p className="text-[10px]" style={{ color: isFuture ? '#ccc' : semanticColor(pct).main }}>
+                    {isFuture ? '—' : `${pct.toFixed(1)}%`}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ═══ SECTION 3 — TERMINAL BREAKDOWN + SPARKLINES ═══ */}
+        <div>
+          <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
+            Desglose por terminal
+          </p>
+          <div className="space-y-4">
+            {companyTerminals.map(term => {
+              const zones = term.hasZones
+                ? ZONES.filter(z => z.terminalId === term.id)
+                : [{ id: 'default', name: companyName, terminalId: term.id }];
+
+              const totalTarget = zones.reduce((s, z) => s + getTarget(term.id, z.id, companyId), 0);
+
+              return (
+                <div key={term.id} className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
+                  <div className="flex justify-between items-center px-4 py-3"
+                    style={{ borderBottom: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
+                    <p className="text-xs font-medium uppercase tracking-wide">{TERMINAL_DISPLAY[term.id] || term.name}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--color-text-secondary, #888)' }}>
+                      Autorizado: {totalTarget.toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    {zones.map((zone, zi) => {
+                      /* Compute values per week */
+                      const weekValues = weeks.map((w, wi) => {
+                        if (wi > activeWeekIdx) return null;
+                        const { avg, avgPlanned } = weekAvg(w, term.id, zone.id, companyId);
+                        const target = getTarget(term.id, zone.id, companyId);
+                        const pct = target > 0 ? (avg / target) * 100 : (avgPlanned > 0 ? (avg / avgPlanned) * 100 : 0);
+                        return { avg, pct };
+                      });
+
+                      const currentVal = weekValues[activeWeekIdx];
+                      const currentPct = currentVal?.pct || 0;
+                      const sc = semanticColor(currentPct);
+                      const target = getTarget(term.id, zone.id, companyId);
+
+                      return (
+                        <div key={zone.id} className="flex items-center px-4 py-2"
+                          style={{ borderBottom: zi < zones.length - 1 ? '0.5px solid var(--color-border-tertiary, #eee)' : 'none' }}>
+                          {/* Zone name */}
+                          <div className="w-[70px] flex-shrink-0">
+                            <p className="text-[10px] font-medium truncate">{zone.name}</p>
+                          </div>
+                          {/* Sparkline */}
+                          <div className="flex-1 px-2">
+                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} />
+                          </div>
+                          {/* Right stats */}
+                          <div className="w-[80px] flex-shrink-0 text-right">
+                            <p className="text-sm font-medium" style={{ color: sc.main }}>{currentPct.toFixed(0)}%</p>
+                            <p className="text-[9px]" style={{ color: 'var(--color-text-secondary, #aaa)' }}>
+                              {(currentVal?.avg || 0).toFixed(1)} / {target.toFixed(1)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ═══ SECTION 4 — ATTENDANCE DETAIL TABLES ═══ */}
+        <div>
+          <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
+            Registro de asistencia por día
+          </p>
+          <div className="space-y-5">
+            {companyTerminals.map(term => {
+              const zones = term.hasZones
+                ? ZONES.filter(z => z.terminalId === term.id)
+                : [{ id: 'default', name: companyName, terminalId: term.id }];
+              const schedules = getTermSchedules(term.id);
+
+              return zones.map(zone => (
+                <AttendanceTable
+                  key={`${term.id}-${zone.id}`}
+                  termId={term.id}
+                  termName={TERMINAL_DISPLAY[term.id] || term.name}
+                  zoneName={zone.name}
+                  zoneId={zone.id}
+                  companyId={companyId}
+                  week={activeWeek}
+                  schedules={schedules}
+                  records={records}
+                  staffing={staffing}
+                  targets={targets}
+                />
+              ));
+            })}
+          </div>
+        </div>
+
+        {/* ═══ FOOTER ═══ */}
+        <div className="flex justify-between items-center pt-4 text-[9px]" style={{ color: 'var(--color-text-secondary, #aaa)', borderTop: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
+          <span>Airport Travel Advisors S.A. de C.V. · Jorge Zendejas Lovera, Supervisor</span>
+          <span>{new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+        </div>
       </div>
     </div>
   );
 };
+
+/* ──────────────────────────  KPI CARD  ────────────────────────── */
+
+function KpiCard({ label, value, extra }: { label: string; value: string; extra?: React.ReactNode }) {
+  return (
+    <div className="rounded-lg p-3.5" style={{ background: 'var(--color-background-secondary, #f9f9f9)' }}>
+      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-secondary, #888)' }}>{label}</p>
+      <div className="flex items-end gap-2">
+        <span className="text-xl font-medium">{value}</span>
+        {extra}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────  SPARKLINE  ────────────────────────── */
+
+function SparkLine({ weeks, values, activeIdx }: {
+  weeks: ReturnType<typeof getMonthWeeks>;
+  values: (null | { avg: number; pct: number })[];
+  activeIdx: number;
+}) {
+  const n = weeks.length;
+  const xPositions = n <= 4 ? [28, 84, 140, 196] : [28, 84, 140, 196, 252];
+  const viewW = n <= 4 ? 224 : 280;
+
+  const MIN_Y = 8, MAX_Y = 34;
+  const RANGE_Y = MAX_Y - MIN_Y;
+
+  const validVals = values.filter(v => v !== null) as { avg: number; pct: number }[];
+  const pctVals = validVals.map(v => v.pct);
+  const minVal = pctVals.length > 0 ? Math.min(...pctVals) : 0;
+  const maxVal = pctVals.length > 0 ? Math.max(...pctVals) : 100;
+  const span = maxVal - minVal || 1;
+
+  const getY = (pct: number) => MAX_Y - ((pct - minVal) / span) * RANGE_Y;
+
+  const points: string[] = [];
+  values.forEach((v, i) => {
+    if (v !== null) points.push(`${xPositions[i]},${getY(v.pct).toFixed(1)}`);
+  });
+
+  const activePct = values[activeIdx]?.pct || 0;
+  const activeSc = semanticColor(activePct);
+
+  return (
+    <svg viewBox={`0 0 ${viewW} 70`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
+      {/* Line */}
+      {points.length > 1 && (
+        <polyline points={points.join(' ')} fill="none"
+          stroke="#B5D4F4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+      {/* Points + labels */}
+      {values.map((v, i) => {
+        if (v === null) return null;
+        const x = xPositions[i];
+        const y = getY(v.pct);
+        const isActive = i === activeIdx;
+        const sc = semanticColor(v.pct);
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r={isActive ? 5.5 : 3.5}
+              fill={isActive ? sc.main : '#B5D4F4'}
+              stroke={isActive ? 'white' : 'none'} strokeWidth={isActive ? 2 : 0} />
+            <text x={x} y={48} textAnchor="middle" fontSize="9"
+              fill={isActive ? sc.main : '#999'} fontWeight={isActive ? '600' : '400'}>
+              S{i + 1}
+            </text>
+            <text x={x} y={62} textAnchor="middle" fontSize="9"
+              fill={isActive ? sc.main : '#bbb'}>
+              {v.pct.toFixed(0)}%
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ──────────────────────────  ATTENDANCE TABLE  ────────────────────────── */
+
+function AttendanceTable({ termId, termName, zoneName, zoneId, companyId, week, schedules, records, staffing, targets }: {
+  termId: string; termName: string; zoneName: string; zoneId: string; companyId: string;
+  week: { number: number; start: Date; end: Date; days: Date[] };
+  schedules: { id: string; time: string }[];
+  records: AttendanceRecord[]; staffing: StaffingEntry[]; targets: PositionTarget[];
+}) {
+  const days = week.days;
+  let hasRule = false;
+
+  const target = targets.find(t => t.terminalId === termId && t.zoneId === zoneId && t.companyId === companyId);
+  const targetVal = target ? Number(target.count) : 0;
+
+  const fl = FIRST_LAST[termId];
+  const canApplyRule = RULE50_TERMINALS.has(termId);
+
+  /* Get staffing for each day */
+  const dailyStaffing = days.map(d => {
+    const dStr = fmtDate(d);
+    const s = staffing.find(x => x.date === dStr && x.terminalId === termId && x.zoneId === zoneId && x.companyId === companyId);
+    return s ? Number(s.count) : 0;
+  });
+
+  /* Cell data for each schedule x day */
+  const cellData = schedules.map(sched => {
+    return days.map((d, di) => {
+      const dStr = fmtDate(d);
+      const recs = records.filter(r =>
+        r.dateRegistered === dStr && r.terminalId === termId && r.companyId === companyId &&
+        (zoneId !== 'default' ? r.zoneId === zoneId : true) && r.scheduleId === sched.id
+      );
+      const real = recs.length > 0 ? recs.reduce((s, r) => s + r.promoterCount, 0) : null;
+      const planned = dailyStaffing[di];
+
+      if (real !== null && canApplyRule && fl) {
+        const isFL = sched.id === fl.first || sched.id === fl.last;
+        if (isFL && planned > 0 && real >= planned * 0.5) {
+          hasRule = true;
+          return { real, effective: planned, ruleApplied: true };
+        }
+      }
+      return { real, effective: real, ruleApplied: false };
+    });
+  });
+
+  /* Averages per schedule */
+  const schedAvgs = cellData.map(row => {
+    const vals = row.filter(c => c.real !== null).map(c => c.effective || 0);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  });
+
+  return (
+    <div className="rounded-xl overflow-hidden text-[10px]" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
+      <div className="px-3 py-2 font-medium text-xs" style={{ background: 'var(--color-background-secondary, #f5f5f5)' }}>
+        {termName}{zoneId !== 'default' ? ` — ${zoneName}` : ''}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: 500 }}>
+          <thead>
+            {/* Date row */}
+            <tr style={{ background: '#f9f9f9' }}>
+              <th className="px-2 py-1.5 text-left font-medium" style={{ borderBottom: '0.5px solid #eee', width: 70 }}>FECHA</th>
+              {days.map((d, i) => (
+                <th key={i} className="px-1 py-1.5 text-center font-medium" style={{ borderBottom: '0.5px solid #eee' }}>
+                  {d.getDate()}-{MONTHS_LOWER[d.getMonth()].substring(0, 3)}
+                </th>
+              ))}
+              <th className="px-2 py-1.5 text-center font-medium" style={{ borderBottom: '0.5px solid #eee' }}>PROM</th>
+            </tr>
+            {/* Target row */}
+            <tr>
+              <td className="px-2 py-1 font-medium" style={{ borderBottom: '0.5px solid #eee', color: '#888' }}>POS. POR ÁREA</td>
+              {days.map((_, i) => (
+                <td key={i} className="px-1 py-1 text-center" style={{ borderBottom: '0.5px solid #eee' }}>{targetVal}</td>
+              ))}
+              <td className="px-2 py-1 text-center" style={{ borderBottom: '0.5px solid #eee' }}>{targetVal}</td>
+            </tr>
+            {/* Staffing row */}
+            <tr>
+              <td className="px-2 py-1 font-medium" style={{ borderBottom: '0.5px solid #eee', color: '#888' }}>SALA / Hora</td>
+              {dailyStaffing.map((v, i) => (
+                <td key={i} className="px-1 py-1 text-center" style={{ borderBottom: '0.5px solid #eee' }}>{v}</td>
+              ))}
+              <td className="px-2 py-1 text-center" style={{ borderBottom: '0.5px solid #eee' }}>
+                {dailyStaffing.length > 0 ? (dailyStaffing.reduce((a, b) => a + b, 0) / dailyStaffing.length).toFixed(1) : '—'}
+              </td>
+            </tr>
+          </thead>
+          <tbody>
+            {schedules.map((sched, si) => (
+              <tr key={sched.id}>
+                <td className="px-2 py-1 font-medium" style={{ borderBottom: '0.5px solid #f0f0f0' }}>{sched.time}</td>
+                {cellData[si].map((cell, di) => {
+                  const cellStyle: React.CSSProperties = { borderBottom: '0.5px solid #f0f0f0' };
+                  if (cell.ruleApplied) {
+                    cellStyle.background = '#E6F1FB';
+                    cellStyle.color = '#0C447C';
+                    cellStyle.fontWeight = 600;
+                  }
+                  return (
+                    <td key={di} className="px-1 py-1 text-center" style={cellStyle}>
+                      {cell.real !== null ? (cell.ruleApplied ? `${cell.real} ★ ${cell.effective}` : cell.real) : ''}
+                    </td>
+                  );
+                })}
+                <td className="px-2 py-1 text-center font-medium" style={{ borderBottom: '0.5px solid #f0f0f0' }}>
+                  {schedAvgs[si] !== null ? schedAvgs[si]!.toFixed(1) : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {hasRule && (
+        <p className="px-3 py-2 text-[9px]" style={{ color: '#0C447C', background: '#F0F7FF' }}>
+          ★ Regla del 50% aplicada — La asistencia en este horario alcanzó o superó el 50% de las posiciones del plan de operaciones, por lo que se reconoce el 100% de ocupación.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default Reports;
