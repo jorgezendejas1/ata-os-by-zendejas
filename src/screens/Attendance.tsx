@@ -318,21 +318,33 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                                         {s.time}
                                     </td>
                                     {/* Celdas de Datos */}
-                                    {columns.map((col, cIdx) => (
-                                        <td key={`${s.id}-${cIdx}`} className="border border-gray-300 p-0 text-center relative h-[45px]">
-                                            <input 
-                                                type="text"
-                                                inputMode="numeric"
-                                                value={getCellValue(s.id, col.companyId, col.zoneId) || '-'}
-                                                onPaste={(e) => handlePaste(e, sIdx, cIdx)}
-                                                onChange={(e) => {
-                                                    const val = e.target.value === '-' || e.target.value === '' ? 0 : parseInt(e.target.value);
-                                                    if (!isNaN(val)) onUpdate(date, s.id, col.companyId, col.zoneId, val);
-                                                }}
-                                                className="w-full h-full text-center bg-transparent outline-none font-medium text-sm focus:bg-blue-100 transition-colors"
-                                            />
-                                        </td>
-                                    ))}
+                                    {columns.map((col, cIdx) => {
+                                        const { real, effective, ruleApplied, plan } = getEffectiveValue(s.id, col.companyId, col.zoneId) as any;
+                                        if (ruleApplied) anyRuleApplied = true;
+                                        return (
+                                            <td 
+                                                key={`${s.id}-${cIdx}`} 
+                                                className="border border-gray-300 p-0 text-center relative h-[45px]"
+                                                style={ruleApplied ? { backgroundColor: '#7C3AED' } : undefined}
+                                            >
+                                                {ruleApplied ? (
+                                                    <span className="text-white font-bold text-sm">{real} ★ {plan}</span>
+                                                ) : (
+                                                    <input 
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={real || '-'}
+                                                        onPaste={(e) => handlePaste(e, sIdx, cIdx)}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value === '-' || e.target.value === '' ? 0 : parseInt(e.target.value);
+                                                            if (!isNaN(val)) onUpdate(date, s.id, col.companyId, col.zoneId, val);
+                                                        }}
+                                                        className="w-full h-full text-center bg-transparent outline-none font-medium text-sm focus:bg-blue-100 transition-colors"
+                                                    />
+                                                )}
+                                            </td>
+                                        );
+                                    })}
                                     {/* Celda Total de la Fila (Sidebar Body Merged) */}
                                     <td className="border-l-4 border-gray-300 border-b border-gray-200 bg-gray-50 text-center h-[45px]">
                                         <div className="flex items-center justify-between px-4">
