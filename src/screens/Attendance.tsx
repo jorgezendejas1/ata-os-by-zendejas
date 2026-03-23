@@ -270,7 +270,7 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                         <tr className="bg-white">
                             {columns.map((col, idx) => (
                                 <th key={`zone-${idx}`} className="border border-gray-300 p-1 text-center text-[10px] font-black uppercase text-gray-600">
-                                    {col.zoneName || 'PR. en sala'}
+                                    {col.zoneName || 'PR. en sala de:'}
                                 </th>
                             ))}
                         </tr>
