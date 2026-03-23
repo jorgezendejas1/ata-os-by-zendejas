@@ -18,6 +18,14 @@ const COMPANY_HEX: Record<string, string> = {
 const HEADER_BG_METAS = '#e2efda';
 const FOOTER_BG_STATS = '#fff2cc';
 
+const FIRST_LAST_SCHEDULES: Record<string, { first: string; last: string }> = {
+  't2n': { first: 'h_0900', last: 'h_cierre' },
+  't2i': { first: 'h_1000', last: 'h_2100' },
+  't3':  { first: 'h_0900', last: 'h_2030' },
+  't4':  { first: 'h_0900', last: 'h_2100' },
+  't1':  { first: 'h_1000', last: 'h_2100' },
+};
+
 // --- HELPERS DE CALENDARIO OPERATIVO (Jueves a Miércoles) ---
 
 const getMonthWeeks = (year: number, monthIndex: number) => {
@@ -177,28 +185,37 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
     // Regla Especial de Exclusión de KG (c6) para T1 y T4
     const isExcludingKG = terminal.id === 't1' || terminal.id === 't4';
 
+    // --- REGLA DEL 50% ---
+    const firstLastConfig = FIRST_LAST_SCHEDULES[terminal.id];
+
+    const getEffectiveValue = (scheduleId: string, companyId: string, zoneId?: string) => {
+        const real = getCellValue(scheduleId, companyId, zoneId);
+        if (!firstLastConfig) return { real, effective: real, ruleApplied: false };
+        if (scheduleId !== firstLastConfig.first && scheduleId !== firstLastConfig.last) {
+            return { real, effective: real, ruleApplied: false };
+        }
+        const plan = getDailyGoal(companyId, zoneId);
+        if (plan > 0 && real >= plan * 0.5) {
+            return { real, effective: plan, ruleApplied: true, plan };
+        }
+        return { real, effective: real, ruleApplied: false };
+    };
+
+    // Track if any cell has rule applied for legend
+    let anyRuleApplied = false;
+
     // --- CÁLCULOS DE PIE DE PÁGINA (COLUMNAS) ---
     const colStats = columns.map(col => {
-        // Suma de valores reales en la columna
-        const sumReal = schedules.reduce((acc, s) => acc + getCellValue(s.id, col.companyId, col.zoneId), 0);
-        // Promedio Real
-        const avg = sumReal / (schedules.length || 1);
-        
-        // Meta Diaria (Staffing)
+        const sumEffective = schedules.reduce((acc, s) => {
+            const { effective } = getEffectiveValue(s.id, col.companyId, col.zoneId);
+            return acc + effective;
+        }, 0);
+        const avg = sumEffective / (schedules.length || 1);
         const dailyGoal = getDailyGoal(col.companyId, col.zoneId);
-        
-        // % Asistencia (Promedio Real / Meta Diaria)
         const perc = dailyGoal > 0 ? (avg / dailyGoal) * 100 : 0;
-        
-        // Cantidad Ausentes (Meta - Promedio Real)
         const absent = Math.max(0, dailyGoal - avg);
-        
-        // % Ausentismo (Ausentes / Meta)
         const absentPerc = dailyGoal > 0 ? (absent / dailyGoal) * 100 : 0;
-        
-        // Posiciones Autorizadas (Target Fijo)
         const authorized = getAuthorizedPosition(col.companyId, col.zoneId);
-
         return { avg, perc, absent, absentPerc, authorized, dailyGoal };
     });
 
@@ -208,15 +225,15 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
             ? columns.filter(c => c.companyId !== 'c6') 
             : columns;
         
-        const sumReal = colsToSum.reduce((acc, c) => acc + getCellValue(s.id, c.companyId, c.zoneId), 0);
+        const sumEffective = colsToSum.reduce((acc, c) => {
+            const { effective } = getEffectiveValue(s.id, c.companyId, c.zoneId);
+            return acc + effective;
+        }, 0);
         
-        // Meta Total de la fila (Suma de metas de las columnas incluidas)
         const sumGoal = colsToSum.reduce((acc, c) => acc + getDailyGoal(c.companyId, c.zoneId), 0);
-        
-        // % Objetivo (Real / Meta)
-        const perc = sumGoal > 0 ? (sumReal / sumGoal) * 100 : 0;
+        const perc = sumGoal > 0 ? (sumEffective / sumGoal) * 100 : 0;
 
-        return { sumReal, sumGoal, perc };
+        return { sumReal: sumEffective, sumGoal, perc };
     });
 
     // Total General (Resumen Sidebar/Footer)
@@ -301,21 +318,33 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                                         {s.time}
                                     </td>
                                     {/* Celdas de Datos */}
-                                    {columns.map((col, cIdx) => (
-                                        <td key={`${s.id}-${cIdx}`} className="border border-gray-300 p-0 text-center relative h-[45px]">
-                                            <input 
-                                                type="text"
-                                                inputMode="numeric"
-                                                value={getCellValue(s.id, col.companyId, col.zoneId) || '-'}
-                                                onPaste={(e) => handlePaste(e, sIdx, cIdx)}
-                                                onChange={(e) => {
-                                                    const val = e.target.value === '-' || e.target.value === '' ? 0 : parseInt(e.target.value);
-                                                    if (!isNaN(val)) onUpdate(date, s.id, col.companyId, col.zoneId, val);
-                                                }}
-                                                className="w-full h-full text-center bg-transparent outline-none font-medium text-sm focus:bg-blue-100 transition-colors"
-                                            />
-                                        </td>
-                                    ))}
+                                    {columns.map((col, cIdx) => {
+                                        const { real, effective, ruleApplied, plan } = getEffectiveValue(s.id, col.companyId, col.zoneId) as any;
+                                        if (ruleApplied) anyRuleApplied = true;
+                                        return (
+                                            <td 
+                                                key={`${s.id}-${cIdx}`} 
+                                                className="border border-gray-300 p-0 text-center relative h-[45px]"
+                                                style={ruleApplied ? { backgroundColor: '#7C3AED' } : undefined}
+                                            >
+                                                {ruleApplied ? (
+                                                    <span className="text-white font-bold text-sm">{real} ★ {plan}</span>
+                                                ) : (
+                                                    <input 
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={real || '-'}
+                                                        onPaste={(e) => handlePaste(e, sIdx, cIdx)}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value === '-' || e.target.value === '' ? 0 : parseInt(e.target.value);
+                                                            if (!isNaN(val)) onUpdate(date, s.id, col.companyId, col.zoneId, val);
+                                                        }}
+                                                        className="w-full h-full text-center bg-transparent outline-none font-medium text-sm focus:bg-blue-100 transition-colors"
+                                                    />
+                                                )}
+                                            </td>
+                                        );
+                                    })}
                                     {/* Celda Total de la Fila (Sidebar Body Merged) */}
                                     <td className="border-l-4 border-gray-300 border-b border-gray-200 bg-gray-50 text-center h-[45px]">
                                         <div className="flex items-center justify-between px-4">
@@ -408,6 +437,11 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                     </tfoot>
                 </table>
             </div>
+            {anyRuleApplied && (
+                <p className="text-xs text-purple-700 mt-2 px-2 italic">
+                    ★ Regla del 50% aplicada — La asistencia en este horario alcanzó o superó el 50% de las posiciones del plan de operaciones, por lo que se reconoce el 100% de ocupación.
+                </p>
+            )}
         </div>
     );
 };
