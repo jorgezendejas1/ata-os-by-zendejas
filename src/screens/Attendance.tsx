@@ -18,6 +18,14 @@ const COMPANY_HEX: Record<string, string> = {
 const HEADER_BG_METAS = '#e2efda';
 const FOOTER_BG_STATS = '#fff2cc';
 
+const FIRST_LAST_SCHEDULES: Record<string, { first: string; last: string }> = {
+  't2n': { first: 'h_0900', last: 'h_cierre' },
+  't2i': { first: 'h_1000', last: 'h_2100' },
+  't3':  { first: 'h_0900', last: 'h_2030' },
+  't4':  { first: 'h_0900', last: 'h_2100' },
+  't1':  { first: 'h_1000', last: 'h_2100' },
+};
+
 // --- HELPERS DE CALENDARIO OPERATIVO (Jueves a Miércoles) ---
 
 const getMonthWeeks = (year: number, monthIndex: number) => {
