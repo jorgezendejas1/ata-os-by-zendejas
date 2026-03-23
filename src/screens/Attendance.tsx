@@ -437,6 +437,11 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                     </tfoot>
                 </table>
             </div>
+            {anyRuleApplied && (
+                <p className="text-xs text-purple-700 mt-2 px-2 italic">
+                    ★ Regla del 50% aplicada — La asistencia en este horario alcanzó o superó el 50% de las posiciones del plan de operaciones, por lo que se reconoce el 100% de ocupación.
+                </p>
+            )}
         </div>
     );
 };
