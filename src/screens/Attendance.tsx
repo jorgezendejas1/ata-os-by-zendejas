@@ -185,28 +185,37 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
     // Regla Especial de Exclusión de KG (c6) para T1 y T4
     const isExcludingKG = terminal.id === 't1' || terminal.id === 't4';
 
+    // --- REGLA DEL 50% ---
+    const firstLastConfig = FIRST_LAST_SCHEDULES[terminal.id];
+
+    const getEffectiveValue = (scheduleId: string, companyId: string, zoneId?: string) => {
+        const real = getCellValue(scheduleId, companyId, zoneId);
+        if (!firstLastConfig) return { real, effective: real, ruleApplied: false };
+        if (scheduleId !== firstLastConfig.first && scheduleId !== firstLastConfig.last) {
+            return { real, effective: real, ruleApplied: false };
+        }
+        const plan = getDailyGoal(companyId, zoneId);
+        if (plan > 0 && real >= plan * 0.5) {
+            return { real, effective: plan, ruleApplied: true, plan };
+        }
+        return { real, effective: real, ruleApplied: false };
+    };
+
+    // Track if any cell has rule applied for legend
+    let anyRuleApplied = false;
+
     // --- CÁLCULOS DE PIE DE PÁGINA (COLUMNAS) ---
     const colStats = columns.map(col => {
-        // Suma de valores reales en la columna
-        const sumReal = schedules.reduce((acc, s) => acc + getCellValue(s.id, col.companyId, col.zoneId), 0);
-        // Promedio Real
-        const avg = sumReal / (schedules.length || 1);
-        
-        // Meta Diaria (Staffing)
+        const sumEffective = schedules.reduce((acc, s) => {
+            const { effective } = getEffectiveValue(s.id, col.companyId, col.zoneId);
+            return acc + effective;
+        }, 0);
+        const avg = sumEffective / (schedules.length || 1);
         const dailyGoal = getDailyGoal(col.companyId, col.zoneId);
-        
-        // % Asistencia (Promedio Real / Meta Diaria)
         const perc = dailyGoal > 0 ? (avg / dailyGoal) * 100 : 0;
-        
-        // Cantidad Ausentes (Meta - Promedio Real)
         const absent = Math.max(0, dailyGoal - avg);
-        
-        // % Ausentismo (Ausentes / Meta)
         const absentPerc = dailyGoal > 0 ? (absent / dailyGoal) * 100 : 0;
-        
-        // Posiciones Autorizadas (Target Fijo)
         const authorized = getAuthorizedPosition(col.companyId, col.zoneId);
-
         return { avg, perc, absent, absentPerc, authorized, dailyGoal };
     });
 
@@ -216,15 +225,15 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
             ? columns.filter(c => c.companyId !== 'c6') 
             : columns;
         
-        const sumReal = colsToSum.reduce((acc, c) => acc + getCellValue(s.id, c.companyId, c.zoneId), 0);
+        const sumEffective = colsToSum.reduce((acc, c) => {
+            const { effective } = getEffectiveValue(s.id, c.companyId, c.zoneId);
+            return acc + effective;
+        }, 0);
         
-        // Meta Total de la fila (Suma de metas de las columnas incluidas)
         const sumGoal = colsToSum.reduce((acc, c) => acc + getDailyGoal(c.companyId, c.zoneId), 0);
-        
-        // % Objetivo (Real / Meta)
-        const perc = sumGoal > 0 ? (sumReal / sumGoal) * 100 : 0;
+        const perc = sumGoal > 0 ? (sumEffective / sumGoal) * 100 : 0;
 
-        return { sumReal, sumGoal, perc };
+        return { sumReal: sumEffective, sumGoal, perc };
     });
 
     // Total General (Resumen Sidebar/Footer)
