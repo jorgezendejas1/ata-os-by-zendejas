@@ -314,10 +314,22 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           {weeks.map((w, i) => <option key={i} value={i}>{w.label}</option>)}
         </select>
         {!isExporting && (
-          <button onClick={handleExportPDF}
-            className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
-            <FileDown size={16} /> Exportar PDF
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={handleExportAll}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent transition-colors">
+              <FileDown size={16} /> Exportar todas las empresas
+            </button>
+            <button onClick={handleExportPDF}
+              className="flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+              <FileDown size={16} /> Exportar PDF
+            </button>
+          </div>
+        )}
+        {isExporting && exportAllProgress && (
+          <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="animate-spin" size={16} />
+            <span>{exportAllProgress}</span>
+          </div>
         )}
       </div>
 
