@@ -40,7 +40,7 @@ function getMonthWeeks(year: number, month: number) {
 const TO_FIXED = ['karladavila@airport-ta.com', 'dbriseno@ata-supervisor.com'];
 
 const BCC_CID = ['vtrava@elcid.com.mx','efhernandez@elcid.com.mx','alexruizrame@hotmail.com','josepepepepe@hotmail.com','ocitherlet@elcid.com.mx','fhernandez@ata-supervisor.com'];
-const BCC_UVC = ['fhernandez@ata-supervisor.com'];
+const BCC_SUN: string[] = [];
 const BCC_XCA = ['mdominguezdu@mexicodestinationclub.com','sanguiano@mexicodestinationclub.com','mnavarroc@mexicodestinationclub.com','jgonzalezr@experienciasxcaret.com.mx','mhernandezch@experienciasxcaret.com.mx','padelmoral@mexicodestinationclub.com','fhernandez@ata-supervisor.com','aolimon@mexicodestinationclub.com'];
 const BCC_VDP = ['gtemktb@villagroupcancun.com','adireccionmktcan@villagroup.com','bob.kistner@taferresorts.com','miguel.juarez@taferresorts.com','fgc1422@gmail.com','asismarketing@villagroup.com','marin.manuel14@yahoo.com.mx','auxmkt@taferresorts.com','fhernandez@ata-supervisor.com'];
 const BCC_KRY = ['tfischer@kivc.com','eliz07-11@hotmail.com','gsierra@kivc.com','ccomeau@kivc.com','fhernandez@ata-supervisor.com'];
