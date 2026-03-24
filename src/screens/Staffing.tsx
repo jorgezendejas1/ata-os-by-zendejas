@@ -17,7 +17,7 @@ const formatDateLocal = (date: Date) => {
 };
 
 const COMPANY_COLORS: Record<string, string> = {
-  'c1': 'bg-[#92d050]', // UVC
+  'c1': 'bg-[#92d050]', // Sunset
   'c4': 'bg-[#bdd7ee]', // CID
   'c3': 'bg-[#f8cbad]', // Villa del Palmar
   'c5': 'bg-[#ffff00]', // Krystal
