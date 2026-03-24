@@ -81,6 +81,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [activeWeekIdx, setActiveWeekIdx] = useState(0);
   const [companyId, setCompanyId] = useState('c1');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportAllProgress, setExportAllProgress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
