@@ -81,6 +81,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [activeWeekIdx, setActiveWeekIdx] = useState(0);
   const [companyId, setCompanyId] = useState('c1');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportAllProgress, setExportAllProgress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -244,7 +245,39 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     }).from(el).save().then(() => setIsExporting(false)).catch(() => { setIsExporting(false); showToast('Error al exportar', 'error'); });
   };
 
-  /* ── SECTION 4: Attendance detail table data ── */
+  /* ── EXPORT ALL COMPANIES ── */
+  const EXPORT_ORDER = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
+  const handleExportAll = async () => {
+    const w = window as any;
+    if (!w.html2pdf) { showToast('html2pdf no disponible', 'error'); return; }
+    const originalCompany = companyId;
+    setIsExporting(true);
+    const total = EXPORT_ORDER.length;
+    for (let i = 0; i < total; i++) {
+      const cId = EXPORT_ORDER[i];
+      const meta = COMPANY_META[cId];
+      setExportAllProgress(`Generando ${i + 1} de ${total}... ${meta.short}`);
+      setCompanyId(cId);
+      // Wait for React to re-render with the new company
+      await new Promise(r => setTimeout(r, 600));
+      const el = document.getElementById('reports-content');
+      if (!el) continue;
+      const filename = `${meta.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
+      await w.html2pdf().set({
+        margin: 10,
+        filename,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+      }).from(el).save();
+      // Small delay between downloads
+      await new Promise(r => setTimeout(r, 400));
+    }
+    setCompanyId(originalCompany);
+    setExportAllProgress(null);
+    setIsExporting(false);
+    showToast(`${total} PDFs exportados correctamente`, 'success');
+  };
+
 
   const getTermSchedules = (termId: string) => {
     const terminal = TERMINALS.find(t => t.id === termId);
@@ -281,10 +314,22 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           {weeks.map((w, i) => <option key={i} value={i}>{w.label}</option>)}
         </select>
         {!isExporting && (
-          <button onClick={handleExportPDF}
-            className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
-            <FileDown size={16} /> Exportar PDF
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={handleExportAll}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent transition-colors">
+              <FileDown size={16} /> Exportar todas las empresas
+            </button>
+            <button onClick={handleExportPDF}
+              className="flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+              <FileDown size={16} /> Exportar PDF
+            </button>
+          </div>
+        )}
+        {isExporting && exportAllProgress && (
+          <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="animate-spin" size={16} />
+            <span>{exportAllProgress}</span>
+          </div>
         )}
       </div>
 
