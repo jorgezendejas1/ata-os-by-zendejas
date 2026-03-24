@@ -40,11 +40,11 @@ function getMonthWeeks(year: number, month: number) {
 const TO_FIXED = ['karladavila@airport-ta.com', 'dbriseno@ata-supervisor.com'];
 
 const BCC_CID = ['vtrava@elcid.com.mx','efhernandez@elcid.com.mx','alexruizrame@hotmail.com','josepepepepe@hotmail.com','ocitherlet@elcid.com.mx','fhernandez@ata-supervisor.com'];
-const BCC_UVC = ['fhernandez@ata-supervisor.com'];
+const BCC_SUN: string[] = [];
 const BCC_XCA = ['mdominguezdu@mexicodestinationclub.com','sanguiano@mexicodestinationclub.com','mnavarroc@mexicodestinationclub.com','jgonzalezr@experienciasxcaret.com.mx','mhernandezch@experienciasxcaret.com.mx','padelmoral@mexicodestinationclub.com','fhernandez@ata-supervisor.com','aolimon@mexicodestinationclub.com'];
 const BCC_VDP = ['gtemktb@villagroupcancun.com','adireccionmktcan@villagroup.com','bob.kistner@taferresorts.com','miguel.juarez@taferresorts.com','fgc1422@gmail.com','asismarketing@villagroup.com','marin.manuel14@yahoo.com.mx','auxmkt@taferresorts.com','fhernandez@ata-supervisor.com'];
 const BCC_KRY = ['tfischer@kivc.com','eliz07-11@hotmail.com','gsierra@kivc.com','ccomeau@kivc.com','fhernandez@ata-supervisor.com'];
-const BCC_PREMIOS = [...new Set([...BCC_CID,...BCC_UVC,...BCC_XCA,...BCC_VDP,...BCC_KRY,'gbernal@grand-club.com'])];
+const BCC_PREMIOS = [...new Set([...BCC_CID,...BCC_SUN,...BCC_XCA,...BCC_VDP,...BCC_KRY,'gbernal@grand-club.com'])];
 const BCC_MODULOS = ['sanguiano@mexicodestinationclub.com','gtemktb@villagroupcancun.com','rroths@airport-ta.com','jruiz@airport-ta.com','elizgarcia@airport-ta.com','gsierra@kivc.com','marin.manuel14@yahoo.com.mx','mnavarroc@mexicodestinationclub.com','padelmoral@mexicodestinationclub.com','fhernandez@ata-supervisor.com'];
 
 interface EmailDef {
@@ -58,8 +58,8 @@ interface EmailDef {
 const EMAIL_DEFS: EmailDef[] = [
   { email_type: 'ASISTENCIA_CID', company_id: 'c4', label: 'Asistencia CID', bcc: BCC_CID,
     subjectFn: (s,e,m,y) => `CID - ${s} al ${e} de ${m}  ${y} - Reporte` },
-  { email_type: 'ASISTENCIA_UVC', company_id: 'c1', label: 'Asistencia UVC', bcc: BCC_UVC,
-    subjectFn: (s,e,m,y) => `UVC - ${s} al ${e} de ${m}  ${y} - Reporte` },
+  { email_type: 'ASISTENCIA_SUN', company_id: 'c1', label: 'Asistencia Sunset', bcc: BCC_SUN,
+    subjectFn: (s,e,m,y) => `SUN - ${s} al ${e} de ${m}  ${y} - Reporte` },
   { email_type: 'ASISTENCIA_XCA', company_id: 'c2', label: 'Asistencia XCA', bcc: BCC_XCA,
     subjectFn: (s,e,m,y) => `XCA - ${s} al ${e} de ${m}  ${y} - Reporte` },
   { email_type: 'ASISTENCIA_VDP', company_id: 'c3', label: 'Asistencia VDP', bcc: BCC_VDP,

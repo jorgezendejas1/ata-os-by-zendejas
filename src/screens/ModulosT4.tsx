@@ -10,7 +10,7 @@ import { Save, FileDown, LayoutGrid } from 'lucide-react';
 
 const COMPANIES = [
   { id: '', label: 'Vacío', color: '#ffffff', textColor: 'black' },
-  { id: 'c1', label: 'UVC', color: '#92d050', textColor: 'black' },
+  { id: 'c1', label: 'Sunset', color: '#92d050', textColor: 'black' },
   { id: 'c2', label: 'XCA', color: '#948a54', textColor: 'white' },
   { id: 'c3', label: 'VDP', color: '#f8cbad', textColor: 'black' },
   { id: 'c4', label: 'CID', color: '#bdd7ee', textColor: 'black' },
