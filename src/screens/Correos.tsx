@@ -58,8 +58,8 @@ interface EmailDef {
 const EMAIL_DEFS: EmailDef[] = [
   { email_type: 'ASISTENCIA_CID', company_id: 'c4', label: 'Asistencia CID', bcc: BCC_CID,
     subjectFn: (s,e,m,y) => `CID - ${s} al ${e} de ${m}  ${y} - Reporte` },
-  { email_type: 'ASISTENCIA_UVC', company_id: 'c1', label: 'Asistencia UVC', bcc: BCC_UVC,
-    subjectFn: (s,e,m,y) => `UVC - ${s} al ${e} de ${m}  ${y} - Reporte` },
+  { email_type: 'ASISTENCIA_SUN', company_id: 'c1', label: 'Asistencia Sunset', bcc: BCC_SUN,
+    subjectFn: (s,e,m,y) => `SUN - ${s} al ${e} de ${m}  ${y} - Reporte` },
   { email_type: 'ASISTENCIA_XCA', company_id: 'c2', label: 'Asistencia XCA', bcc: BCC_XCA,
     subjectFn: (s,e,m,y) => `XCA - ${s} al ${e} de ${m}  ${y} - Reporte` },
   { email_type: 'ASISTENCIA_VDP', company_id: 'c3', label: 'Asistencia VDP', bcc: BCC_VDP,

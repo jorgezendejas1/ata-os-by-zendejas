@@ -331,10 +331,10 @@ const AdminControl: React.FC = () => {
                   {[
                     { 
                       id: 'c1', 
-                      name: 'Unlimited Vacation Club (UVC)', 
-                      desc: 'Pilar del Imperio Hyatt (Apple Leisure Group). Gestión de +71 resorts (Secrets, Dreams, Zoëtry). Enfoque: Lujo extremo, personalización absoluta y servicio de mayordomía.',
+                      name: 'Grupo Sunset (Sunset)', 
+                      desc: 'Grupo hotelero con presencia en destinos turísticos de México y el Caribe. Enfoque en experiencias vacacionales de calidad.',
                       color: '#92d050',
-                      usp: 'Unlimited-Luxury® & Endless Privileges®'
+                      usp: 'Experiencias vacacionales premium'
                     },
                     { 
                       id: 'c2', 
