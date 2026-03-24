@@ -2,7 +2,7 @@
 import { Company, Schedule, Terminal, Zone } from './types';
 
 export const COMPANIES: Company[] = [
-  { id: 'c1', name: 'Unlimited Vacation Club' },
+  { id: 'c1', name: 'Grupo Sunset' },
   { id: 'c2', name: 'Grupo Xcaret' },
   { id: 'c3', name: 'Villa del Palmar' },
   { id: 'c4', name: 'El Cid' },
