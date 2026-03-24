@@ -44,7 +44,7 @@ const BCC_SUN: string[] = [];
 const BCC_XCA = ['mdominguezdu@mexicodestinationclub.com','sanguiano@mexicodestinationclub.com','mnavarroc@mexicodestinationclub.com','jgonzalezr@experienciasxcaret.com.mx','mhernandezch@experienciasxcaret.com.mx','padelmoral@mexicodestinationclub.com','fhernandez@ata-supervisor.com','aolimon@mexicodestinationclub.com'];
 const BCC_VDP = ['gtemktb@villagroupcancun.com','adireccionmktcan@villagroup.com','bob.kistner@taferresorts.com','miguel.juarez@taferresorts.com','fgc1422@gmail.com','asismarketing@villagroup.com','marin.manuel14@yahoo.com.mx','auxmkt@taferresorts.com','fhernandez@ata-supervisor.com'];
 const BCC_KRY = ['tfischer@kivc.com','eliz07-11@hotmail.com','gsierra@kivc.com','ccomeau@kivc.com','fhernandez@ata-supervisor.com'];
-const BCC_PREMIOS = [...new Set([...BCC_CID,...BCC_UVC,...BCC_XCA,...BCC_VDP,...BCC_KRY,'gbernal@grand-club.com'])];
+const BCC_PREMIOS = [...new Set([...BCC_CID,...BCC_SUN,...BCC_XCA,...BCC_VDP,...BCC_KRY,'gbernal@grand-club.com'])];
 const BCC_MODULOS = ['sanguiano@mexicodestinationclub.com','gtemktb@villagroupcancun.com','rroths@airport-ta.com','jruiz@airport-ta.com','elizgarcia@airport-ta.com','gsierra@kivc.com','marin.manuel14@yahoo.com.mx','mnavarroc@mexicodestinationclub.com','padelmoral@mexicodestinationclub.com','fhernandez@ata-supervisor.com'];
 
 interface EmailDef {
