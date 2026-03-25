@@ -143,7 +143,7 @@ export const saveStaffingBatch = async (entries: StaffingEntry[]) => {
 
   const { error } = await supabase
     .from('staffing')
-    .upsert(dbEntries as any[])
+    .upsert(dbEntries as any[], { onConflict: 'date,terminalId,zoneId,companyId' })
     .select();
   
   if (error) {
