@@ -7,7 +7,7 @@ import { Save, Target, Building2, Info, CheckCircle2, LayoutList, Table2, FileTe
 declare var html2pdf: any;
 
 const COMPANY_COLORS: Record<string, string> = {
-  'c1': 'bg-[#92d050] text-black', // Sunset
+  'c1': 'bg-[#92d050] text-black', // UVC
   'c4': 'bg-[#bdd7ee] text-black', // CID
   'c3': 'bg-[#f8cbad] text-black', // Villa del Palmar
   'c5': 'bg-[#ffff00] text-black', // Krystal

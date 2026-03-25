@@ -14,7 +14,7 @@ const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio',
   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 const COMPANY_META: Record<string, { short: string; bg: string; text: string }> = {
-  c1: { short: 'Sunset', bg: '#92d050', text: '#000' },
+  c1: { short: 'UVC',   bg: '#92d050', text: '#000' },
   c2: { short: 'XCA',   bg: '#948a54', text: '#fff' },
   c3: { short: 'VDP',   bg: '#f8cbad', text: '#000' },
   c4: { short: 'CID',   bg: '#bdd7ee', text: '#000' },

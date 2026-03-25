@@ -3,7 +3,7 @@ import { getPromoters, updatePromoter, Promoter } from '../services/db';
 import { Edit3, Check, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const COMPANIES: Record<string, { label: string; bg: string; text: string }> = {
-  c1: { label: 'Sunset', bg: '#92d050', text: '#000' },
+  c1: { label: 'UVC', bg: '#92d050', text: '#000' },
   c2: { label: 'XCA', bg: '#948a54', text: '#fff' },
   c3: { label: 'VDP', bg: '#f8cbad', text: '#000' },
   c4: { label: 'CID', bg: '#bdd7ee', text: '#000' },

@@ -2,7 +2,7 @@
 import { Company, Schedule, Terminal, Zone } from './types';
 
 export const COMPANIES: Company[] = [
-  { id: 'c1', name: 'Grupo Sunset' },
+  { id: 'c1', name: 'Unlimited Vacation Club' },
   { id: 'c2', name: 'Grupo Xcaret' },
   { id: 'c3', name: 'Villa del Palmar' },
   { id: 'c4', name: 'El Cid' },
@@ -79,10 +79,10 @@ export const DEFAULT_ALLOCATIONS: Record<string, Record<string, Record<string, n
     'default': { 'c1': 5, 'c2': 5, 'c3': 5, 'c4': 2, 'c5': 3 }
   },
   't2n': {
-    'z1': { 'c2': 20 },
-    'z2': { 'c2': 4  },
-    'z3': { 'c2': 10 },
-    'z4': { 'c2': 19 },
+    'z1': { 'c1': 10, 'c2': 10 }, 
+    'z2': { 'c1': 2, 'c2': 2 },   
+    'z3': { 'c1': 5, 'c2': 5 },   
+    'z4': { 'c1': 10, 'c2': 9 },  
   },
   't2i': {
     'default': { 
