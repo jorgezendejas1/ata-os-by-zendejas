@@ -189,18 +189,18 @@ const AdminControl: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
                   {COMPANIES.map(c => (
                     <div key={c.id} className="group p-3 bg-white border border-slate-50 rounded-2xl flex flex-col items-center gap-3 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-slate-200/50 cursor-default">
-                      <div className="w-8 h-8 rounded-full shadow-inner flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: 
+                      <div className="w-10 h-10 rounded-full shadow-inner flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: 
                         c.id === 'c1' ? '#92d050' : 
                         c.id === 'c2' ? '#948a54' :
                         c.id === 'c3' ? '#f8cbad' :
                         c.id === 'c4' ? '#bdd7ee' :
                         c.id === 'c5' ? '#ffff00' : '#afafaf'
                       }}>
-                        <span className="text-[7px] font-black text-white mix-blend-difference">{c.id}</span>
+                        <span className="text-[9px] font-black text-white mix-blend-difference">{c.id}</span>
                       </div>
                       <div className="text-center">
-                        <p className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tighter">{c.name}</p>
-                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">{c.id}</p>
+                        <p className="text-xs font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tighter">{c.name}</p>
+                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{c.id}</p>
                       </div>
                     </div>
                   ))}
