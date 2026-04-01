@@ -497,20 +497,25 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
   }, [viewTerminalId, visibleTerminals]);
 
   useEffect(() => {
-      const loadManagementData = async () => {
-          if (activeTab !== 'REGISTRO') {
-              const d = new Date(viewDate + 'T12:00:00');
-              const [recs, stff, trgts] = await Promise.all([
-                  getRecords(), 
-                  getStaffing(viewTerminalId, d.getFullYear(), d.getMonth()), 
-                  getTargets()
-              ]);
-              setRecords(recs);
-              setStaffing(stff);
-              setTargets(trgts);
-          }
-      };
-      loadManagementData();
+    const loadBaseData = async () => {
+      const [recs, trgts] = await Promise.all([
+        getRecords(),
+        getTargets()
+      ]);
+      setRecords(recs);
+      setTargets(trgts);
+    };
+    loadBaseData();
+  }, [viewDate]);
+
+  useEffect(() => {
+    if (activeTab === 'REGISTRO') return;
+    const loadStaffing = async () => {
+      const d = new Date(viewDate + 'T12:00:00');
+      const stff = await getStaffing(viewTerminalId, d.getFullYear(), d.getMonth());
+      setStaffing(stff);
+    };
+    loadStaffing();
   }, [activeTab, viewDate, viewTerminalId]);
 
   const availableCompanies = useMemo(() => {
