@@ -476,7 +476,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                           </div>
                           {/* Sparkline */}
                           <div className="flex-1 px-2">
-                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} />
+                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} target={target} />
                           </div>
                           {/* Right stats */}
                           <div className="w-[80px] flex-shrink-0 text-right">
@@ -552,10 +552,11 @@ function KpiCard({ label, value, extra }: { label: string; value: string; extra?
 
 /* ──────────────────────────  SPARKLINE  ────────────────────────── */
 
-function SparkLine({ weeks, values, activeIdx }: {
+function SparkLine({ weeks, values, activeIdx, target }: {
   weeks: ReturnType<typeof getMonthWeeks>;
   values: (null | { avg: number; pct: number })[];
   activeIdx: number;
+  target: number;
 }) {
   const n = weeks.length;
   const xPositions = n <= 4 ? [28, 84, 140, 196] : [28, 84, 140, 196, 252];
@@ -581,7 +582,7 @@ function SparkLine({ weeks, values, activeIdx }: {
   const activeSc = semanticColor(activePct);
 
   return (
-    <svg viewBox={`0 0 ${viewW} 70`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
+    <svg viewBox={`0 0 ${viewW} 80`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
       {/* Line */}
       {points.length > 1 && (
         <polyline points={points.join(' ')} fill="none"
@@ -606,6 +607,10 @@ function SparkLine({ weeks, values, activeIdx }: {
             <text x={x} y={62} textAnchor="middle" fontSize="9"
               fill={isActive ? sc.main : '#bbb'}>
               {v.pct.toFixed(0)}%
+            </text>
+            <text x={x} y={72} textAnchor="middle" fontSize="8"
+              fill={isActive ? sc.main : '#ccc'}>
+              {v.avg.toFixed(1)} / {target.toFixed(1)}
             </text>
           </g>
         );
