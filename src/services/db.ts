@@ -296,6 +296,12 @@ export const deletePromoter = async (id: string): Promise<void> => {
   showToast('Promotor eliminado', 'info');
 };
 
+export const createPromoter = async (p: Omit<Promoter, 'id'>): Promise<void> => {
+  const { error } = await supabase.from('promoters').insert([p] as any);
+  if (error) { showToast('Error al crear promotor', 'error'); throw error; }
+  showToast('Promotor creado', 'success');
+};
+
 // --- EMPRESAS (COMPANIES) ---
 
 export interface Company {
