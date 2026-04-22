@@ -410,7 +410,8 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       {/* ═══ REPORT CONTENT (for PDF) ═══ */}
       <div id="reports-content" className="space-y-6">
 
-        {/* ═══ SECTION 1 — HEADER + KPIs ═══ */}
+        {/* ═══ PAGE 1 — HEADER + KPIs + WEEKLY HISTORY ═══ */}
+        <div id="pdf-section-1" style={{ pageBreakAfter: 'always', breakAfter: 'page' }} className="space-y-6">
         <div className="rounded-xl p-5" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
           <div className="flex justify-between items-start mb-5">
             <div>
@@ -450,7 +451,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           </div>
         </div>
 
-        {/* ═══ SECTION 2 — WEEKLY HISTORY ═══ */}
+        {/* WEEKLY HISTORY */}
         <div>
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Histórico semanal
