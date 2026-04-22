@@ -228,8 +228,49 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     return TERMINALS.some(t => t.isActive && t.id !== 't1' && t.allowedCompanies?.includes(c.id));
   });
 
+  /* ── SVG → PNG: html2canvas no renderiza bien SVGs inline ── */
+  const rasterizeSvgs = async (el: HTMLElement) => {
+    const svgs = el.querySelectorAll('svg');
+    const replacements: { svg: SVGElement; img: HTMLImageElement }[] = [];
+    for (const svg of Array.from(svgs)) {
+      const data = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([data], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      await new Promise<void>(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const w0 = svg.clientWidth || 280;
+          const h0 = svg.clientHeight || 80;
+          canvas.width = w0 * 2;
+          canvas.height = h0 * 2;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pngImg = document.createElement('img');
+          pngImg.src = canvas.toDataURL('image/png');
+          pngImg.style.width = '100%';
+          pngImg.style.height = h0 + 'px';
+          pngImg.style.display = 'block';
+          svg.parentNode!.replaceChild(pngImg, svg);
+          replacements.push({ svg: svg as SVGElement, img: pngImg });
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        img.src = url;
+      });
+    }
+    return replacements;
+  };
+
+  const restoreSvgs = (replacements: { svg: SVGElement; img: HTMLImageElement }[]) => {
+    for (const { svg, img } of replacements) {
+      if (img.parentNode) img.parentNode.replaceChild(svg, img);
+    }
+  };
+
   /* ── EXPORT PDF ── */
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const el = document.getElementById('reports-content');
     if (!el) return;
     const w = window as any;
@@ -237,12 +278,21 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     setIsExporting(true);
     const cm = COMPANY_META[companyId];
     const filename = `${cm.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
-    w.html2pdf().set({
-      margin: 10,
-      filename,
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-    }).from(el).save().then(() => setIsExporting(false)).catch(() => { setIsExporting(false); showToast('Error al exportar', 'error'); });
+    const replacements = await rasterizeSvgs(el);
+    try {
+      await w.html2pdf().set({
+        margin: 10,
+        filename,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] },
+      }).from(el).save();
+    } catch {
+      showToast('Error al exportar', 'error');
+    } finally {
+      restoreSvgs(replacements);
+      setIsExporting(false);
+    }
   };
 
   /* ── EXPORT ALL COMPANIES ── */
@@ -258,18 +308,22 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       const meta = COMPANY_META[cId];
       setExportAllProgress(`Generando ${i + 1} de ${total}... ${meta.short}`);
       setCompanyId(cId);
-      // Wait for React to re-render with the new company
       await new Promise(r => setTimeout(r, 600));
       const el = document.getElementById('reports-content');
       if (!el) continue;
       const filename = `${meta.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
-      await w.html2pdf().set({
-        margin: 10,
-        filename,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-      }).from(el).save();
-      // Small delay between downloads
+      const replacements = await rasterizeSvgs(el);
+      try {
+        await w.html2pdf().set({
+          margin: 10,
+          filename,
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        }).from(el).save();
+      } finally {
+        restoreSvgs(replacements);
+      }
       await new Promise(r => setTimeout(r, 400));
     }
     setCompanyId(originalCompany);
