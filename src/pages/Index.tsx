@@ -19,7 +19,9 @@ import Correos from '../screens/Correos';
 import ModulosT4 from '../screens/ModulosT4';
 import Powers from '../screens/Powers';
 import Companies from '../screens/Companies';
-import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap, Building2 } from 'lucide-react';
+import Terminals from '../screens/Terminals';
+import EmailTemplates from '../screens/EmailTemplates';
+import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap, Building2, MapPin, Mails } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
   useEffect(() => {
@@ -55,7 +57,7 @@ const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (i
 
 const Index: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS' | 'COMPANIES'>('ATTENDANCE');
+  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS' | 'COMPANIES' | 'TERMINALS' | 'EMAIL_TEMPLATES'>('ATTENDANCE');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<AppTheme>('system');
