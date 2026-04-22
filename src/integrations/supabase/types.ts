@@ -140,6 +140,42 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          abbreviation: string
+          active: boolean
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          short_name: string
+          terminals: string[] | null
+          text_color: string
+        }
+        Insert: {
+          abbreviation: string
+          active?: boolean
+          color?: string
+          created_at?: string | null
+          id?: string
+          name: string
+          short_name: string
+          terminals?: string[] | null
+          text_color?: string
+        }
+        Update: {
+          abbreviation?: string
+          active?: boolean
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          short_name?: string
+          terminals?: string[] | null
+          text_color?: string
+        }
+        Relationships: []
+      }
       config: {
         Row: {
           id: string

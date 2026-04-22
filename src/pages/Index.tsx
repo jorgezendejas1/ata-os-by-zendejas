@@ -18,7 +18,8 @@ import Premios from '../screens/Premios';
 import Correos from '../screens/Correos';
 import ModulosT4 from '../screens/ModulosT4';
 import Powers from '../screens/Powers';
-import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap } from 'lucide-react';
+import Companies from '../screens/Companies';
+import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap, Building2 } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
   useEffect(() => {
@@ -54,7 +55,7 @@ const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (i
 
 const Index: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS'>('ATTENDANCE');
+  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS' | 'COMPANIES'>('ATTENDANCE');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<AppTheme>('system');
@@ -214,6 +215,7 @@ const Index: React.FC = () => {
               <>
                 <div className="py-4 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>
                 <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" />
+                <NavItem view="COMPANIES" icon={Building2} label="Empresas" />
                 <NavItem view="USERS" icon={UsersIcon} label="Accesos" />
               </>
             )}
@@ -269,6 +271,7 @@ const Index: React.FC = () => {
              {!isSidebarCollapsed && <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>}
              {isSidebarCollapsed && <div className="pt-4" />}
              <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" collapsed={isSidebarCollapsed} />
+             <NavItem view="COMPANIES" icon={Building2} label="Empresas" collapsed={isSidebarCollapsed} />
              <NavItem view="USERS" icon={UsersIcon} label="Usuarios" collapsed={isSidebarCollapsed} />
             </>
           )}
@@ -324,6 +327,7 @@ const Index: React.FC = () => {
           {currentView === 'CORREOS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Correos />}
           {currentView === 'MODULOS_T4' && (user.role === 'MASTER' || user.role === 'REPORTES') && <ModulosT4 />}
           {currentView === 'POWERS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Powers />}
+          {currentView === 'COMPANIES' && user.role === 'MASTER' && <Companies />}
         </div>
       </main>
     </div>

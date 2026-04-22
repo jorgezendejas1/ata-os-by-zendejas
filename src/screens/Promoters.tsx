@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getPromoters, updatePromoter, Promoter } from '../services/db';
-import { Edit3, Check, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getPromoters, updatePromoter, deletePromoter, Promoter } from '../services/db';
+import { Edit3, Check, X, Search, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 const COMPANIES: Record<string, { label: string; bg: string; text: string }> = {
   c1: { label: 'Sunset', bg: '#92d050', text: '#000' },
@@ -63,6 +63,14 @@ const Promoters: React.FC = () => {
       await updatePromoter({ ...p, name: editData.name, company_id: editData.company_id, terminal_id: editData.terminal_id });
       setPromoters(prev => prev.map(x => x.id === p.id ? { ...x, name: editData.name, company_id: editData.company_id, terminal_id: editData.terminal_id } : x));
       setEditingId(null);
+    } catch { /* toast already shown */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Eliminar este promotor?')) return;
+    try {
+      await deletePromoter(id);
+      setPromoters(prev => prev.filter(p => p.id !== id));
     } catch { /* toast already shown */ }
   };
 
@@ -164,7 +172,12 @@ const Promoters: React.FC = () => {
                             <button onClick={cancelEdit} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><X size={14} /></button>
                           </div>
                         ) : (
-                          <button onClick={() => startEdit(p)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"><Edit3 size={14} /></button>
+                          <div className="flex gap-1.5 items-center">
+                            <button onClick={() => startEdit(p)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"><Edit3 size={14} /></button>
+                            <button onClick={() => handleDelete(p.id)} className="p-3 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white dark:hover:bg-gray-800 rounded-2xl transition-all shadow-sm active:scale-90 border border-transparent hover:border-gray-100 dark:hover:border-gray-700">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

@@ -228,8 +228,49 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     return TERMINALS.some(t => t.isActive && t.id !== 't1' && t.allowedCompanies?.includes(c.id));
   });
 
+  /* ── SVG → PNG: html2canvas no renderiza bien SVGs inline ── */
+  const rasterizeSvgs = async (el: HTMLElement) => {
+    const svgs = el.querySelectorAll('svg');
+    const replacements: { svg: SVGElement; img: HTMLImageElement }[] = [];
+    for (const svg of Array.from(svgs)) {
+      const data = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([data], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      await new Promise<void>(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const w0 = svg.clientWidth || 280;
+          const h0 = svg.clientHeight || 80;
+          canvas.width = w0 * 2;
+          canvas.height = h0 * 2;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pngImg = document.createElement('img');
+          pngImg.src = canvas.toDataURL('image/png');
+          pngImg.style.width = '100%';
+          pngImg.style.height = h0 + 'px';
+          pngImg.style.display = 'block';
+          svg.parentNode!.replaceChild(pngImg, svg);
+          replacements.push({ svg: svg as SVGElement, img: pngImg });
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        img.src = url;
+      });
+    }
+    return replacements;
+  };
+
+  const restoreSvgs = (replacements: { svg: SVGElement; img: HTMLImageElement }[]) => {
+    for (const { svg, img } of replacements) {
+      if (img.parentNode) img.parentNode.replaceChild(svg, img);
+    }
+  };
+
   /* ── EXPORT PDF ── */
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const el = document.getElementById('reports-content');
     if (!el) return;
     const w = window as any;
@@ -237,12 +278,21 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     setIsExporting(true);
     const cm = COMPANY_META[companyId];
     const filename = `${cm.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
-    w.html2pdf().set({
-      margin: 10,
-      filename,
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-    }).from(el).save().then(() => setIsExporting(false)).catch(() => { setIsExporting(false); showToast('Error al exportar', 'error'); });
+    const replacements = await rasterizeSvgs(el);
+    try {
+      await w.html2pdf().set({
+        margin: 10,
+        filename,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] },
+      }).from(el).save();
+    } catch {
+      showToast('Error al exportar', 'error');
+    } finally {
+      restoreSvgs(replacements);
+      setIsExporting(false);
+    }
   };
 
   /* ── EXPORT ALL COMPANIES ── */
@@ -258,18 +308,22 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       const meta = COMPANY_META[cId];
       setExportAllProgress(`Generando ${i + 1} de ${total}... ${meta.short}`);
       setCompanyId(cId);
-      // Wait for React to re-render with the new company
       await new Promise(r => setTimeout(r, 600));
       const el = document.getElementById('reports-content');
       if (!el) continue;
       const filename = `${meta.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
-      await w.html2pdf().set({
-        margin: 10,
-        filename,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-      }).from(el).save();
-      // Small delay between downloads
+      const replacements = await rasterizeSvgs(el);
+      try {
+        await w.html2pdf().set({
+          margin: 10,
+          filename,
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        }).from(el).save();
+      } finally {
+        restoreSvgs(replacements);
+      }
       await new Promise(r => setTimeout(r, 400));
     }
     setCompanyId(originalCompany);
@@ -356,7 +410,8 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       {/* ═══ REPORT CONTENT (for PDF) ═══ */}
       <div id="reports-content" className="space-y-6">
 
-        {/* ═══ SECTION 1 — HEADER + KPIs ═══ */}
+        {/* ═══ PAGE 1 — HEADER + KPIs + WEEKLY HISTORY ═══ */}
+        <div id="pdf-section-1" style={{ pageBreakAfter: 'always', breakAfter: 'page' }} className="space-y-6">
         <div className="rounded-xl p-5" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
           <div className="flex justify-between items-start mb-5">
             <div>
@@ -396,7 +451,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           </div>
         </div>
 
-        {/* ═══ SECTION 2 — WEEKLY HISTORY ═══ */}
+        {/* WEEKLY HISTORY */}
         <div>
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Histórico semanal
@@ -428,9 +483,10 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
             })}
           </div>
         </div>
+        </div>
 
-        {/* ═══ SECTION 3 — TERMINAL BREAKDOWN + SPARKLINES ═══ */}
-        <div>
+        {/* ═══ PAGE 2 — TERMINAL BREAKDOWN + SPARKLINES ═══ */}
+        <div id="pdf-section-2" style={{ pageBreakAfter: 'always', breakAfter: 'page' }}>
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Desglose por terminal
           </p>
@@ -476,7 +532,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                           </div>
                           {/* Sparkline */}
                           <div className="flex-1 px-2">
-                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} />
+                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} target={target} />
                           </div>
                           {/* Right stats */}
                           <div className="w-[80px] flex-shrink-0 text-right">
@@ -495,8 +551,8 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           </div>
         </div>
 
-        {/* ═══ SECTION 4 — ATTENDANCE DETAIL TABLES ═══ */}
-        <div>
+        {/* ═══ PAGE 3 — ATTENDANCE DETAIL TABLES ═══ */}
+        <div id="pdf-section-3">
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Registro de asistencia por día
           </p>
@@ -552,10 +608,11 @@ function KpiCard({ label, value, extra }: { label: string; value: string; extra?
 
 /* ──────────────────────────  SPARKLINE  ────────────────────────── */
 
-function SparkLine({ weeks, values, activeIdx }: {
+function SparkLine({ weeks, values, activeIdx, target }: {
   weeks: ReturnType<typeof getMonthWeeks>;
   values: (null | { avg: number; pct: number })[];
   activeIdx: number;
+  target: number;
 }) {
   const n = weeks.length;
   const xPositions = n <= 4 ? [28, 84, 140, 196] : [28, 84, 140, 196, 252];
@@ -581,7 +638,7 @@ function SparkLine({ weeks, values, activeIdx }: {
   const activeSc = semanticColor(activePct);
 
   return (
-    <svg viewBox={`0 0 ${viewW} 70`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
+    <svg viewBox={`0 0 ${viewW} 80`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
       {/* Line */}
       {points.length > 1 && (
         <polyline points={points.join(' ')} fill="none"
@@ -606,6 +663,10 @@ function SparkLine({ weeks, values, activeIdx }: {
             <text x={x} y={62} textAnchor="middle" fontSize="9"
               fill={isActive ? sc.main : '#bbb'}>
               {v.pct.toFixed(0)}%
+            </text>
+            <text x={x} y={72} textAnchor="middle" fontSize="8"
+              fill={isActive ? sc.main : '#ccc'}>
+              {v.avg.toFixed(1)} / {target.toFixed(1)}
             </text>
           </g>
         );
