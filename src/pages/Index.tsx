@@ -205,7 +205,6 @@ const Index: React.FC = () => {
                 <NavItem view="RECORDS" icon={Database} label="Bitácora" />
                 <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" />
                 <NavItem view="TARGETS" icon={Target} label="Posiciones" />
-                <NavItem view="PROMOTERS" icon={Users2} label="Promotores" />
                 <NavItem view="ADC" icon={AlertCircle} label="ADC" />
                 <NavItem view="PREMIOS" icon={Trophy} label="Premios" />
                 <NavItem view="CORREOS" icon={Mail} label="Correos" />
@@ -215,10 +214,14 @@ const Index: React.FC = () => {
             )}
             {user.role === 'MASTER' && (
               <>
+                <div className="py-4 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Administración</div>
+                <NavItem view="PROMOTERS" icon={Users2} label="Promotores" />
+                <NavItem view="USERS" icon={UsersIcon} label="Usuarios" />
+                <NavItem view="COMPANIES" icon={Building2} label="Empresas" />
+                <NavItem view="TERMINALS" icon={MapPin} label="Terminales" />
+                <NavItem view="EMAIL_TEMPLATES" icon={Mails} label="Plantillas Correo" />
                 <div className="py-4 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>
                 <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" />
-                <NavItem view="COMPANIES" icon={Building2} label="Empresas" />
-                <NavItem view="USERS" icon={UsersIcon} label="Accesos" />
               </>
             )}
           </nav>
@@ -260,7 +263,6 @@ const Index: React.FC = () => {
                <NavItem view="RECORDS" icon={Database} label="Bitácora" collapsed={isSidebarCollapsed} />
                <NavItem view="STAFFING" icon={CalendarClock} label="Distribución" collapsed={isSidebarCollapsed} />
                <NavItem view="TARGETS" icon={Target} label="Posiciones" collapsed={isSidebarCollapsed} />
-               <NavItem view="PROMOTERS" icon={Users2} label="Promotores" collapsed={isSidebarCollapsed} />
                <NavItem view="ADC" icon={AlertCircle} label="ADC" collapsed={isSidebarCollapsed} />
                <NavItem view="PREMIOS" icon={Trophy} label="Premios" collapsed={isSidebarCollapsed} />
                <NavItem view="CORREOS" icon={Mail} label="Correos" collapsed={isSidebarCollapsed} />
@@ -270,11 +272,16 @@ const Index: React.FC = () => {
           )}
           {user.role === 'MASTER' && (
             <>
+             {!isSidebarCollapsed && <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Administración</div>}
+             {isSidebarCollapsed && <div className="pt-4" />}
+             <NavItem view="PROMOTERS" icon={Users2} label="Promotores" collapsed={isSidebarCollapsed} />
+             <NavItem view="USERS" icon={UsersIcon} label="Usuarios" collapsed={isSidebarCollapsed} />
+             <NavItem view="COMPANIES" icon={Building2} label="Empresas" collapsed={isSidebarCollapsed} />
+             <NavItem view="TERMINALS" icon={MapPin} label="Terminales" collapsed={isSidebarCollapsed} />
+             <NavItem view="EMAIL_TEMPLATES" icon={Mails} label="Plantillas Correo" collapsed={isSidebarCollapsed} />
              {!isSidebarCollapsed && <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>}
              {isSidebarCollapsed && <div className="pt-4" />}
              <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" collapsed={isSidebarCollapsed} />
-             <NavItem view="COMPANIES" icon={Building2} label="Empresas" collapsed={isSidebarCollapsed} />
-             <NavItem view="USERS" icon={UsersIcon} label="Usuarios" collapsed={isSidebarCollapsed} />
             </>
           )}
         </nav>
@@ -330,6 +337,8 @@ const Index: React.FC = () => {
           {currentView === 'MODULOS_T4' && (user.role === 'MASTER' || user.role === 'REPORTES') && <ModulosT4 />}
           {currentView === 'POWERS' && (user.role === 'MASTER' || user.role === 'REPORTES') && <Powers />}
           {currentView === 'COMPANIES' && user.role === 'MASTER' && <Companies />}
+          {currentView === 'TERMINALS' && user.role === 'MASTER' && <Terminals />}
+          {currentView === 'EMAIL_TEMPLATES' && user.role === 'MASTER' && <EmailTemplates />}
         </div>
       </main>
     </div>
