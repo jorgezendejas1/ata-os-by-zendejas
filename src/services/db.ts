@@ -290,6 +290,44 @@ export const updatePromoter = async (p: Promoter): Promise<void> => {
   showToast("Promotor actualizado", "success");
 };
 
+export const deletePromoter = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('promoters').delete().eq('id', id);
+  if (error) { showToast('No se pudo eliminar el promotor', 'error'); throw error; }
+  showToast('Promotor eliminado', 'info');
+};
+
+// --- EMPRESAS (COMPANIES) ---
+
+export interface Company {
+  id?: string;
+  name: string;
+  short_name: string;
+  abbreviation: string;
+  color: string;
+  text_color: string;
+  active: boolean;
+  terminals: string[];
+  created_at?: string;
+}
+
+export const getCompanies = async (): Promise<Company[]> => {
+  const { data, error } = await supabase.from('companies' as any).select('*').order('name');
+  if (error) { showToast('Error al cargar empresas', 'error'); return []; }
+  return (data || []) as unknown as Company[];
+};
+
+export const saveCompany = async (c: Company): Promise<void> => {
+  const { error } = await supabase.from('companies' as any).upsert(c as any);
+  if (error) { showToast('Error al guardar empresa', 'error'); throw error; }
+  showToast('Empresa guardada', 'success');
+};
+
+export const deleteCompany = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('companies' as any).delete().eq('id', id);
+  if (error) { showToast('Error al eliminar empresa', 'error'); throw error; }
+  showToast('Empresa eliminada', 'info');
+};
+
 // --- ADC (AVISOS DE COMPROMISO) ---
 
 export interface AdcRecord {
