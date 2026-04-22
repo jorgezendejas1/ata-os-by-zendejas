@@ -483,9 +483,10 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
             })}
           </div>
         </div>
+        </div>
 
-        {/* ═══ SECTION 3 — TERMINAL BREAKDOWN + SPARKLINES ═══ */}
-        <div>
+        {/* ═══ PAGE 2 — TERMINAL BREAKDOWN + SPARKLINES ═══ */}
+        <div id="pdf-section-2" style={{ pageBreakAfter: 'always', breakAfter: 'page' }}>
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Desglose por terminal
           </p>
@@ -550,8 +551,8 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           </div>
         </div>
 
-        {/* ═══ SECTION 4 — ATTENDANCE DETAIL TABLES ═══ */}
-        <div>
+        {/* ═══ PAGE 3 — ATTENDANCE DETAIL TABLES ═══ */}
+        <div id="pdf-section-3">
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Registro de asistencia por día
           </p>
