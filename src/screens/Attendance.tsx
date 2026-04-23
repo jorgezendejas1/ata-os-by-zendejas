@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Terminal, Zone, Schedule, AttendanceFormEntry, AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
-import { COMPANIES, TERMINALS, ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
+import { COMPANIES, ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
 import { saveRecords, getPlannedCount, getRecords, getStaffing, getTargets, updateAttendanceRecord, showToast } from '../services/db';
 import SignaturePad from '../components/SignaturePad';
+import { useTerminals } from '../hooks/useTerminals';
 import { Check, AlertCircle, Save, CheckSquare, Square, Info, ChevronDown, ChevronUp, X, MapPin, Clock, Loader2, Target, ArrowRight, LayoutGrid, Calendar, ListChecks, Edit3, Trash2, Building2, TrendingUp, Filter, CalendarDays, ClipboardCopy, FileSpreadsheet, Wand2 } from 'lucide-react';
 
 const COMPANY_HEX: Record<string, string> = {
