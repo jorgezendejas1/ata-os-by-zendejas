@@ -13,6 +13,10 @@ export interface User {
 export interface Company {
   id: string;
   name: string;
+  short_name?: string;
+  abbreviation?: string;
+  color?: string;
+  text_color?: string;
 }
 
 export interface Terminal {
