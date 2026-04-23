@@ -11,6 +11,52 @@ export const showToast = (message: string, type: AppNotification['type'] = 'info
   window.dispatchEvent(event);
 };
 
+// --- TERMINALES (dinámicas) ---
+export interface TerminalDB {
+  id: string;
+  name: string;
+  has_zones: boolean;
+  is_active: boolean;
+  allowed_companies: string[];
+  allowed_schedules: string[];
+  sort_order: number;
+}
+
+export const getTerminals = async (): Promise<TerminalDB[]> => {
+  const { data, error } = await supabase.from('terminals' as any).select('*').order('sort_order');
+  if (error) { showToast('Error al cargar terminales', 'error'); return []; }
+  return (data || []) as unknown as TerminalDB[];
+};
+
+export const saveTerminal = async (t: TerminalDB): Promise<void> => {
+  const { error } = await supabase.from('terminals' as any).upsert({ ...t, updated_at: new Date().toISOString() } as any);
+  if (error) { showToast('Error al guardar terminal', 'error'); throw error; }
+  showToast('Terminal actualizada', 'success');
+};
+
+// --- PLANTILLAS DE CORREO ---
+export interface EmailTemplate {
+  email_type: string;
+  label: string;
+  company_id: string;
+  bcc_recipients: string[];
+  subject_template: string;
+  body_template: string;
+  updated_at?: string;
+}
+
+export const getEmailTemplates = async (): Promise<EmailTemplate[]> => {
+  const { data, error } = await supabase.from('email_templates' as any).select('*').order('email_type');
+  if (error) { showToast('Error al cargar plantillas', 'error'); return []; }
+  return (data || []) as unknown as EmailTemplate[];
+};
+
+export const saveEmailTemplate = async (t: EmailTemplate): Promise<void> => {
+  const { error } = await supabase.from('email_templates' as any).upsert({ ...t, updated_at: new Date().toISOString() } as any);
+  if (error) { showToast('Error al guardar plantilla', 'error'); throw error; }
+  showToast('Plantilla guardada', 'success');
+};
+
 // --- USUARIOS ---
 
 export const getUsers = async (): Promise<User[]> => {

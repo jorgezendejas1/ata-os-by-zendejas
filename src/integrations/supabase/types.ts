@@ -263,6 +263,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          bcc_recipients: string[]
+          body_template: string
+          company_id: string
+          email_type: string
+          label: string
+          subject_template: string
+          updated_at: string | null
+        }
+        Insert: {
+          bcc_recipients?: string[]
+          body_template: string
+          company_id?: string
+          email_type: string
+          label: string
+          subject_template: string
+          updated_at?: string | null
+        }
+        Update: {
+          bcc_recipients?: string[]
+          body_template?: string
+          company_id?: string
+          email_type?: string
+          label?: string
+          subject_template?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       modules_entries: {
         Row: {
           company_id: string
@@ -506,6 +536,42 @@ export type Database = {
           priority?: string
           status?: string
           title?: string
+        }
+        Relationships: []
+      }
+      terminals: {
+        Row: {
+          allowed_companies: string[]
+          allowed_schedules: string[]
+          created_at: string | null
+          has_zones: boolean
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_companies?: string[]
+          allowed_schedules?: string[]
+          created_at?: string | null
+          has_zones?: boolean
+          id: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_companies?: string[]
+          allowed_schedules?: string[]
+          created_at?: string | null
+          has_zones?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string | null
         }
         Relationships: []
       }
