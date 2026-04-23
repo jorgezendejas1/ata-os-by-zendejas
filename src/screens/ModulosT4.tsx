@@ -7,16 +7,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../components/ui/table';
 import { Save, FileDown, LayoutGrid } from 'lucide-react';
+import { useCompanies } from '../hooks/useCompanies';
 
-const COMPANIES = [
-  { id: '', label: 'Vacío', color: '#ffffff', textColor: 'black' },
-  { id: 'c1', label: 'Sunset', color: '#92d050', textColor: 'black' },
-  { id: 'c2', label: 'XCA', color: '#948a54', textColor: 'white' },
-  { id: 'c3', label: 'VDP', color: '#f8cbad', textColor: 'black' },
-  { id: 'c4', label: 'CID', color: '#bdd7ee', textColor: 'black' },
-  { id: 'c5', label: 'KRY', color: '#ffff00', textColor: 'black' },
-  { id: 'c6', label: 'KRY G', color: '#afafaf', textColor: 'black' },
-];
+const EMPTY_COMPANY = { id: '', label: 'Vacío', color: '#ffffff', textColor: 'black' };
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];

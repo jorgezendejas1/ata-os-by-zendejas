@@ -9,15 +9,7 @@ import { Input } from '../components/ui/input';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Save, Zap, BarChart3, FileDown } from 'lucide-react';
-
-const COMPANIES_ALL = [
-  { id: 'c1', label: 'Sunset', color: '#92d050', textColor: 'black' },
-  { id: 'c2', label: 'XCA', color: '#948a54', textColor: 'white' },
-  { id: 'c3', label: 'VDP', color: '#f8cbad', textColor: 'black' },
-  { id: 'c4', label: 'CID', color: '#bdd7ee', textColor: 'black' },
-  { id: 'c5', label: 'KRY', color: '#ffff00', textColor: 'black' },
-  { id: 'c6', label: 'KRY G', color: '#afafaf', textColor: 'black' },
-];
+import { useCompanies } from '../hooks/useCompanies';
 
 const POWER_TERMINALS = [
   { id: 'NAL', label: 'NAL', companies: ['c1', 'c2'] },
