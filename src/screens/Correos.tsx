@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { showToast, getEmailLogs } from '../services/db';
+import { showToast, getEmailLogs, getEmailTemplates, EmailTemplate } from '../services/db';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -100,6 +100,17 @@ const Correos: React.FC = () => {
   const [editBodyText, setEditBodyText] = useState('');
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dbTemplates, setDbTemplates] = useState<Record<string, EmailTemplate>>({});
+
+  useEffect(() => {
+    getEmailTemplates().then(data => {
+      if (data && data.length > 0) {
+        const map: Record<string, EmailTemplate> = {};
+        data.forEach(t => { map[t.email_type] = t; });
+        setDbTemplates(map);
+      }
+    }).catch(() => {/* fallback a EMAIL_DEFS */});
+  }, []);
 
   const weeks = useMemo(() => getMonthWeeks(year, month), [year, month]);
   const activeWeek = useMemo(() => weeks.find(w => w.number === weekNumber) || weeks[0], [weeks, weekNumber]);
@@ -115,8 +126,17 @@ const Correos: React.FC = () => {
     const startDay = String(activeWeek.start.getDate()).padStart(2, '0');
     const endDay = String(activeWeek.end.getDate()).padStart(2, '0');
     const monthName = MONTHS_LOWER[activeWeek.end.getMonth()];
-    return def.subjectFn(startDay, endDay, monthName, activeWeek.end.getFullYear());
-  }, [activeWeek]);
+    const yr = activeWeek.end.getFullYear();
+    const tpl = dbTemplates[def.email_type];
+    if (tpl?.subject_template) {
+      return tpl.subject_template
+        .replace(/\{start\}/g, startDay)
+        .replace(/\{end\}/g, endDay)
+        .replace(/\{month\}/g, monthName)
+        .replace(/\{year\}/g, String(yr));
+    }
+    return def.subjectFn(startDay, endDay, monthName, yr);
+  }, [activeWeek, dbTemplates]);
 
   const generateBody = useCallback((def: EmailDef) => {
     if (!activeWeek) return '';
@@ -124,8 +144,16 @@ const Correos: React.FC = () => {
     const endDay = String(activeWeek.end.getDate()).padStart(2, '0');
     const monthName = MONTHS_LOWER[activeWeek.end.getMonth()];
     const yr = activeWeek.end.getFullYear();
+    const tpl = dbTemplates[def.email_type];
+    if (tpl?.body_template) {
+      return tpl.body_template
+        .replace(/\{start\}/g, startDay)
+        .replace(/\{end\}/g, endDay)
+        .replace(/\{month\}/g, monthName)
+        .replace(/\{year\}/g, String(yr));
+    }
     return `Buen día,\n\nAdjunto el reporte correspondiente a la semana del ${startDay} al ${endDay} de ${monthName} ${yr}.${FIRMA}`;
-  }, [activeWeek]);
+  }, [activeWeek, dbTemplates]);
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
