@@ -64,6 +64,7 @@ interface PowerGrid {
 const Powers: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
+  const { companies: COMPANIES_ALL } = useCompanies();
   const [year, setYear] = useState(now.getFullYear());
   const [weekNumber, setWeekNumber] = useState(1);
   const [terminal, setTerminal] = useState('T3');

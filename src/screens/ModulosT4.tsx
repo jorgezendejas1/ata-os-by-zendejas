@@ -51,6 +51,8 @@ interface ModuleEntry {
 const ModulosT4: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
+  const { companies: dynamicCompanies } = useCompanies();
+  const COMPANIES = useMemo(() => [EMPTY_COMPANY, ...dynamicCompanies], [dynamicCompanies]);
   const [year, setYear] = useState(now.getFullYear());
   const [weekNumber, setWeekNumber] = useState(1);
   const [entries, setEntries] = useState<ModuleEntry[]>([]);

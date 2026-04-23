@@ -43,6 +43,7 @@ function formatDateStr(d: Date) {
 const ADC: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
+  const { companies: COMPANIES } = useCompanies();
   const [year, setYear] = useState(now.getFullYear());
   const [weekNumber, setWeekNumber] = useState(1);
   const [companyId, setCompanyId] = useState('c1');
