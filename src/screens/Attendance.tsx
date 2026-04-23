@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Terminal, Zone, Schedule, AttendanceFormEntry, AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
-import { COMPANIES, TERMINALS, ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
+import { COMPANIES, TERMINALS as TERMINALS_FALLBACK, ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
 import { saveRecords, getPlannedCount, getRecords, getStaffing, getTargets, updateAttendanceRecord, showToast } from '../services/db';
 import SignaturePad from '../components/SignaturePad';
+import { useTerminals } from '../hooks/useTerminals';
 import { Check, AlertCircle, Save, CheckSquare, Square, Info, ChevronDown, ChevronUp, X, MapPin, Clock, Loader2, Target, ArrowRight, LayoutGrid, Calendar, ListChecks, Edit3, Trash2, Building2, TrendingUp, Filter, CalendarDays, ClipboardCopy, FileSpreadsheet, Wand2 } from 'lucide-react';
 
 const COMPANY_HEX: Record<string, string> = {
@@ -455,6 +456,7 @@ interface AttendanceProps {
 
 const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
   const [activeTab, setActiveTab] = useState<'REGISTRO' | 'VISTA_DIA' | 'VISTA_SEMANA' | 'VISTA_MES'>('REGISTRO');
+  const { terminals: TERMINALS } = useTerminals();
   
   // Estados para Flujo de Registro
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null);
@@ -469,7 +471,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
   const [staffing, setStaffing] = useState<StaffingEntry[]>([]);
   const [targets, setTargets] = useState<PositionTarget[]>([]);
   const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
-  const [viewTerminalId, setViewTerminalId] = useState(TERMINALS.filter(t => t.isActive)[0].id);
+  const [viewTerminalId, setViewTerminalId] = useState(TERMINALS_FALLBACK.filter(t => t.isActive)[0].id);
 
   // Estados Globales UI
   const [validationModal, setValidationModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' }>({

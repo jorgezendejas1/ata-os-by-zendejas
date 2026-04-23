@@ -2,9 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
-import { COMPANIES, TERMINALS, ZONES, SCHEDULES } from '../constants';
+import { COMPANIES, ZONES, SCHEDULES } from '../constants';
 import { getRecords, getStaffing, getTargets, showToast } from '../services/db';
 import { FileDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { useTerminals } from '../hooks/useTerminals';
 
 /* ──────────────────────────  CONSTANTS  ────────────────────────── */
 
@@ -78,6 +79,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
+  const { terminals: TERMINALS } = useTerminals();
   const [activeWeekIdx, setActiveWeekIdx] = useState(0);
   const [companyId, setCompanyId] = useState('c1');
   const [isExporting, setIsExporting] = useState(false);
