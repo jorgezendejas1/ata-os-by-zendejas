@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TERMINALS, COMPANIES, ZONES } from '../constants';
+import { TERMINALS as TERMINALS_FALLBACK, COMPANIES, ZONES } from '../constants';
 import { getTargets, saveTargets } from '../services/db';
 import { PositionTarget } from '../types';
 import { Save, Target, Building2, Info, CheckCircle2, LayoutList, Table2, FileText, Download, Calendar as CalendarIcon, Printer, ShieldCheck, Loader2, Plus, Minus, ChevronDown, ChevronUp, MapPin, Briefcase } from 'lucide-react';
+import { useTerminals } from '../hooks/useTerminals';
 
 declare var html2pdf: any;
 
@@ -16,13 +17,14 @@ const COMPANY_COLORS: Record<string, string> = {
 };
 
 const Targets: React.FC = () => {
+  const { terminals: TERMINALS } = useTerminals();
   const [targets, setTargets] = useState<PositionTarget[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [viewMode, setViewMode] = useState<'EDIT' | 'PDF'>('EDIT');
-  const activeTerminals = useMemo(() => TERMINALS.filter(t => t.isActive), []);
-  const [expandedTerminalMobile, setExpandedTerminalMobile] = useState<string | null>(activeTerminals[0]?.id || null);
+  const activeTerminals = useMemo(() => TERMINALS.filter(t => t.isActive), [TERMINALS]);
+  const [expandedTerminalMobile, setExpandedTerminalMobile] = useState<string | null>(TERMINALS_FALLBACK.filter(t => t.isActive)[0]?.id || null);
 
   useEffect(() => {
     getTargets().then(setTargets);
