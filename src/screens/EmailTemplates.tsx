@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MailCog, ChevronDown, ChevronUp, Save, Loader2, Eye } from 'lucide-react';
+import { Mails, ChevronDown, ChevronUp, Save, Loader2, Eye } from 'lucide-react';
 import { getEmailTemplates, saveEmailTemplate, EmailTemplate, showToast } from '../services/db';
 
 const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -82,7 +82,7 @@ const EmailTemplates: React.FC = () => {
     <div className="max-w-5xl mx-auto pb-20 p-2 md:p-0 animate-in fade-in duration-500">
       <div className="flex items-center gap-4 mb-10 px-4 md:px-0">
         <div className="bg-blue-100 dark:bg-blue-900/30 p-3.5 rounded-2xl text-blue-600 dark:text-blue-400 shadow-sm">
-          <MailCog size={32} />
+          <Mails size={32} />
         </div>
         <div>
           <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Plantillas de Correo</h2>
