@@ -8,15 +8,7 @@ import { Button } from '../components/ui/button';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { ClipboardPaste, Trash2, Save, ListChecks } from 'lucide-react';
-
-const COMPANIES = [
-  { id: 'c1', label: 'Sunset', color: '#92d050', textColor: 'black' },
-  { id: 'c2', label: 'XCA', color: '#948a54', textColor: 'white' },
-  { id: 'c3', label: 'VDP', color: '#f8cbad', textColor: 'black' },
-  { id: 'c4', label: 'CID', color: '#bdd7ee', textColor: 'black' },
-  { id: 'c5', label: 'KRY', color: '#ffff00', textColor: 'black' },
-  { id: 'c6', label: 'KRY G', color: '#afafaf', textColor: 'black' },
-];
+import { useCompanies } from '../hooks/useCompanies';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -51,6 +43,7 @@ function formatDateStr(d: Date) {
 const ADC: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
+  const { companies: COMPANIES } = useCompanies();
   const [year, setYear] = useState(now.getFullYear());
   const [weekNumber, setWeekNumber] = useState(1);
   const [companyId, setCompanyId] = useState('c1');
