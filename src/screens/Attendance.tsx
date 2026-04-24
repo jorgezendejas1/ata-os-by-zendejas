@@ -37,9 +37,10 @@ interface TerminalGridProps {
     staffing: StaffingEntry[];
     targets: PositionTarget[];
     onUpdate: (date: string, scheduleId: string, companyId: string, zoneId: string | undefined, newValue: number) => void;
+    companyColors?: Record<string, string>;
 }
 
-const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, records, staffing, targets, onUpdate }) => {
+const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, records, staffing, targets, onUpdate, companyColors }) => {
     const schedules = terminal.allowedSchedules ? SCHEDULES.filter(s => terminal.allowedSchedules!.includes(s.id)) : SCHEDULES;
     
     // Obtener empresas en el orden definido en constants.ts
@@ -254,7 +255,7 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                                 <th 
                                     key={`comp-${idx}`} 
                                     className="border border-gray-300 p-1 text-center text-[10px] font-black uppercase text-black"
-                                    style={{ backgroundColor: COMPANY_HEX[col.companyId] || '#eee' }}
+                                    style={{ backgroundColor: (companyColors && companyColors[col.companyId]) || '#eee' }}
                                 >
                                     {col.companyName}
                                 </th>
