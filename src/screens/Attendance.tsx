@@ -631,7 +631,8 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
               await updateAttendanceRecord(updated, user.name);
               setRecords(prev => prev.map(r => r.id === existing.id ? updated : r));
           } else {
-              const company = COMPANIES.find(c => c.id === companyId)!;
+              const company = dynamicCompanies.find(c => c.id === companyId)
+                || COMPANIES.find(c => c.id === companyId)!;
               const terminal = TERMINALS.find(t => t.id === terminalId)!;
               const schedule = SCHEDULES.find(s => s.id === scheduleId)!;
               const zone = zoneId ? ZONES.find(z => z.id === zoneId) : undefined;
