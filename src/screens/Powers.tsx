@@ -206,7 +206,7 @@ const Powers: React.FC = () => {
   const getCompany = (id: string) => COMPANIES_ALL.find(c => c.id === id);
 
   const handleExportPDF = () => {
-    if (!activeWeek) return;
+    if (!activeWeek || !terminalConfig) return;
     const termLabel = terminalConfig.label;
     const startD = activeWeek.start;
     const endD = activeWeek.end;
