@@ -10,44 +10,11 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFoo
 import { Badge } from '../components/ui/badge';
 import { Save, Zap, BarChart3, FileDown } from 'lucide-react';
 import { useCompanies } from '../hooks/useCompanies';
+import { useTerminals } from '../hooks/useTerminals';
+import { getMonthWeeks, MONTHS_ES, formatDateStr } from '../lib/dateUtils';
 
-const POWER_TERMINALS = [
-  { id: 'NAL', label: 'NAL', companies: ['c1', 'c2'] },
-  { id: 'T2', label: 'T2', companies: ['c1', 'c2', 'c4', 'c5'] },
-  { id: 'T3', label: 'T3', companies: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] },
-  { id: 'T4', label: 'T4', companies: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] },
-];
-
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS = MONTHS_ES;
 const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-
-function getMonthWeeks(year: number, month: number) {
-  const firstDayOfMonth = new Date(year, month, 1);
-  const dayOfWeek = firstDayOfMonth.getDay();
-  const daysToSubtract = dayOfWeek >= 4 ? dayOfWeek - 4 : dayOfWeek + 3;
-  const startOfSem1 = new Date(year, month, 1 - daysToSubtract);
-  const weeks: { number: number; start: Date; end: Date; label: string }[] = [];
-  for (let i = 0; i < 6; i++) {
-    const start = new Date(startOfSem1);
-    start.setDate(startOfSem1.getDate() + i * 7);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    if (i > 0 && start > new Date(year, month + 1, 0)) break;
-    const startStr = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
-    const endStr = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
-    weeks.push({
-      number: i + 1,
-      start,
-      end,
-      label: `Semana ${i + 1} · ${startStr}-${endStr}`,
-    });
-  }
-  return weeks;
-}
-
-function formatDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function getWeekDays(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => {
