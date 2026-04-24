@@ -40,6 +40,19 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const { terminals: TERMINALS } = useTerminals();
+  const { companies: dynamicCompanies } = useCompanies();
+
+  const getCompanyMeta = (companyId: string) => {
+    const c = dynamicCompanies.find(co => co.id === companyId);
+    return c
+      ? { short: c.label, bg: c.color, text: c.textColor }
+      : { short: companyId, bg: '#eee', text: '#000' };
+  };
+
+  const getTerminalDisplay = (termId: string) => {
+    return TERMINALS.find(t => t.id === termId)?.name.toUpperCase()
+      || termId.toUpperCase();
+  };
   const [activeWeekIdx, setActiveWeekIdx] = useState(0);
   const [companyId, setCompanyId] = useState('c1');
   const [isExporting, setIsExporting] = useState(false);
