@@ -251,7 +251,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const w = window as any;
     if (!w.html2pdf) { showToast('html2pdf no disponible', 'error'); return; }
     setIsExporting(true);
-    const cm = COMPANY_META[companyId];
+    const cm = getCompanyMeta(companyId);
     const filename = `${cm.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
     const replacements = await rasterizeSvgs(el);
     try {
@@ -280,7 +280,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const total = EXPORT_ORDER.length;
     for (let i = 0; i < total; i++) {
       const cId = EXPORT_ORDER[i];
-      const meta = COMPANY_META[cId];
+      const meta = getCompanyMeta(cId);
       setExportAllProgress(`Generando ${i + 1} de ${total}... ${meta.short}`);
       setCompanyId(cId);
       await new Promise(r => setTimeout(r, 600));
@@ -323,7 +323,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     );
   }
 
-  const cm = COMPANY_META[companyId];
+  const cm = getCompanyMeta(companyId);
   const companyName = COMPANIES.find(c => c.id === companyId)?.name || '';
 
   return (
@@ -365,7 +365,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       {/* Company tabs */}
       <div className="flex flex-wrap gap-1.5">
         {companyList.map(c => {
-          const meta = COMPANY_META[c.id];
+          const meta = getCompanyMeta(c.id);
           const active = c.id === companyId;
           return (
             <button key={c.id} onClick={() => setCompanyId(c.id)}
@@ -477,7 +477,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 <div key={term.id} className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
                   <div className="flex justify-between items-center px-4 py-3"
                     style={{ borderBottom: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
-                    <p className="text-xs font-medium uppercase tracking-wide">{TERMINAL_DISPLAY[term.id] || term.name}</p>
+                    <p className="text-xs font-medium uppercase tracking-wide">{getTerminalDisplay(term.id) || term.name}</p>
                     <p className="text-[10px]" style={{ color: 'var(--color-text-secondary, #888)' }}>
                       Autorizado: {totalTarget.toFixed(2)}
                     </p>
@@ -542,7 +542,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 <AttendanceTable
                   key={`${term.id}-${zone.id}`}
                   termId={term.id}
-                  termName={TERMINAL_DISPLAY[term.id] || term.name}
+                  termName={getTerminalDisplay(term.id) || term.name}
                   zoneName={zone.name}
                   zoneId={zone.id}
                   companyId={companyId}
