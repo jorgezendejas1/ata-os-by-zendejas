@@ -428,6 +428,14 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
   const [targets, setTargets] = useState<PositionTarget[]>([]);
   const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewTerminalId, setViewTerminalId] = useState(TERMINALS_FALLBACK.filter(t => t.isActive)[0].id);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const { companies: dynamicCompanies } = useCompanies();
+  const companyColors = useMemo(() => {
+    const map: Record<string, string> = {};
+    dynamicCompanies.forEach(c => { map[c.id] = c.color; });
+    return map;
+  }, [dynamicCompanies]);
 
   // Estados Globales UI
   const [validationModal, setValidationModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' }>({
@@ -464,7 +472,12 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
       setTargets(trgts);
     };
     loadBaseData();
-  }, [viewDate]);
+  }, [viewDate, refreshKey]);
+
+  // Recarga al montar el componente (regresar al módulo con misma fecha)
+  useEffect(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'REGISTRO') return;
