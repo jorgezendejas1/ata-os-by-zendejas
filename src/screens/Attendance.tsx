@@ -5,22 +5,14 @@ import { COMPANIES, TERMINALS as TERMINALS_FALLBACK, ZONES, SCHEDULES, DEFAULT_A
 import { saveRecords, getPlannedCount, getRecords, getStaffing, getTargets, updateAttendanceRecord, showToast } from '../services/db';
 import SignaturePad from '../components/SignaturePad';
 import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
+import { getMonthWeeks } from '../lib/dateUtils';
 import { Check, AlertCircle, Save, CheckSquare, Square, Info, ChevronDown, ChevronUp, X, MapPin, Clock, Loader2, Target, ArrowRight, LayoutGrid, Calendar, ListChecks, Edit3, Trash2, Building2, TrendingUp, Filter, CalendarDays, ClipboardCopy, FileSpreadsheet, Wand2 } from 'lucide-react';
-
-const COMPANY_HEX: Record<string, string> = {
-  'c1': '#92d050', // UVC
-  'c2': '#948a54', // Xcaret
-  'c3': '#f8cbad', // Villa del Palmar
-  'c4': '#bdd7ee', // El Cid
-  'c5': '#ffff00', // Krystal
-  'c6': '#afafaf', // Krystal Grand
-};
 
 const HEADER_BG_METAS = '#e2efda';
 const FOOTER_BG_STATS = '#fff2cc';
 
 const FIRST_LAST_SCHEDULES: Record<string, { first: string; last: string }> = {
-  't2n': { first: 'h_0900', last: 'h_cierre' },
   't2i': { first: 'h_1000', last: 'h_2100' },
   't3':  { first: 'h_0900', last: 'h_2030' },
   't4':  { first: 'h_0900', last: 'h_2100' },
@@ -28,43 +20,6 @@ const FIRST_LAST_SCHEDULES: Record<string, { first: string; last: string }> = {
 };
 
 // --- HELPERS DE CALENDARIO OPERATIVO (Jueves a Miércoles) ---
-
-const getMonthWeeks = (year: number, monthIndex: number) => {
-  const firstDayOfMonth = new Date(year, monthIndex, 1);
-  const dayOfWeek = firstDayOfMonth.getDay(); 
-
-  let daysToSubtract = 0;
-  if (dayOfWeek >= 4) {
-    daysToSubtract = dayOfWeek - 4;
-  } else {
-    daysToSubtract = dayOfWeek + 3;
-  }
-
-  const startOfSem1 = new Date(year, monthIndex, 1 - daysToSubtract);
-  
-  const weeks = [];
-  for (let i = 0; i < 6; i++) { 
-    const start = new Date(startOfSem1);
-    start.setDate(startOfSem1.getDate() + (i * 7));
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6); 
-    
-    if (i > 0 && start > new Date(year, monthIndex + 1, 0)) break;
-
-    weeks.push({
-      id: i,
-      label: `Semana ${i + 1}`,
-      start,
-      end,
-      days: Array.from({ length: 7 }, (_, d) => {
-        const dayDate = new Date(start);
-        dayDate.setDate(start.getDate() + d);
-        return dayDate;
-      })
-    });
-  }
-  return weeks;
-};
 
 const getOperativeWeekForDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00');
@@ -82,9 +37,10 @@ interface TerminalGridProps {
     staffing: StaffingEntry[];
     targets: PositionTarget[];
     onUpdate: (date: string, scheduleId: string, companyId: string, zoneId: string | undefined, newValue: number) => void;
+    companyColors?: Record<string, string>;
 }
 
-const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, records, staffing, targets, onUpdate }) => {
+const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, records, staffing, targets, onUpdate, companyColors }) => {
     const schedules = terminal.allowedSchedules ? SCHEDULES.filter(s => terminal.allowedSchedules!.includes(s.id)) : SCHEDULES;
     
     // Obtener empresas en el orden definido en constants.ts
@@ -299,7 +255,7 @@ const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, record
                                 <th 
                                     key={`comp-${idx}`} 
                                     className="border border-gray-300 p-1 text-center text-[10px] font-black uppercase text-black"
-                                    style={{ backgroundColor: COMPANY_HEX[col.companyId] || '#eee' }}
+                                    style={{ backgroundColor: (companyColors && companyColors[col.companyId]) || '#eee' }}
                                 >
                                     {col.companyName}
                                 </th>
@@ -472,6 +428,14 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
   const [targets, setTargets] = useState<PositionTarget[]>([]);
   const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewTerminalId, setViewTerminalId] = useState(TERMINALS_FALLBACK.filter(t => t.isActive)[0].id);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const { companies: dynamicCompanies } = useCompanies();
+  const companyColors = useMemo(() => {
+    const map: Record<string, string> = {};
+    dynamicCompanies.forEach(c => { map[c.id] = c.color; });
+    return map;
+  }, [dynamicCompanies]);
 
   // Estados Globales UI
   const [validationModal, setValidationModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' }>({
@@ -508,7 +472,12 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
       setTargets(trgts);
     };
     loadBaseData();
-  }, [viewDate]);
+  }, [viewDate, refreshKey]);
+
+  // Recarga al montar el componente (regresar al módulo con misma fecha)
+  useEffect(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'REGISTRO') return;
@@ -662,7 +631,8 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
               await updateAttendanceRecord(updated, user.name);
               setRecords(prev => prev.map(r => r.id === existing.id ? updated : r));
           } else {
-              const company = COMPANIES.find(c => c.id === companyId)!;
+              const company = dynamicCompanies.find(c => c.id === companyId)
+                || COMPANIES.find(c => c.id === companyId)!;
               const terminal = TERMINALS.find(t => t.id === terminalId)!;
               const schedule = SCHEDULES.find(s => s.id === scheduleId)!;
               const zone = zoneId ? ZONES.find(z => z.id === zoneId) : undefined;
@@ -932,6 +902,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
                       staffing={staffing}
                       targets={targets}
                       onUpdate={(d, s, c, z, v) => handleCellSave(d, t.id, s, c, z, v)}
+                      companyColors={companyColors}
                    />
                </div>
             ))}
@@ -970,6 +941,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
                                               staffing={staffing}
                                               targets={targets}
                                               onUpdate={(d, s, c, z, v) => handleCellSave(d, t.id, s, c, z, v)}
+                                              companyColors={companyColors}
                                            />
                                        </div>
                                     ))}
@@ -1023,6 +995,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
                                                           staffing={staffing}
                                                           targets={targets}
                                                           onUpdate={(d, s, c, z, v) => handleCellSave(d, t.id, s, c, z, v)}
+                                                          companyColors={companyColors}
                                                        />
                                                    </div>
                                                 ))}

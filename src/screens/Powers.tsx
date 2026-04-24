@@ -10,44 +10,11 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFoo
 import { Badge } from '../components/ui/badge';
 import { Save, Zap, BarChart3, FileDown } from 'lucide-react';
 import { useCompanies } from '../hooks/useCompanies';
+import { useTerminals } from '../hooks/useTerminals';
+import { getMonthWeeks, MONTHS_ES, formatDateStr } from '../lib/dateUtils';
 
-const POWER_TERMINALS = [
-  { id: 'NAL', label: 'NAL', companies: ['c1', 'c2'] },
-  { id: 'T2', label: 'T2', companies: ['c1', 'c2', 'c4', 'c5'] },
-  { id: 'T3', label: 'T3', companies: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] },
-  { id: 'T4', label: 'T4', companies: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] },
-];
-
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS = MONTHS_ES;
 const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-
-function getMonthWeeks(year: number, month: number) {
-  const firstDayOfMonth = new Date(year, month, 1);
-  const dayOfWeek = firstDayOfMonth.getDay();
-  const daysToSubtract = dayOfWeek >= 4 ? dayOfWeek - 4 : dayOfWeek + 3;
-  const startOfSem1 = new Date(year, month, 1 - daysToSubtract);
-  const weeks: { number: number; start: Date; end: Date; label: string }[] = [];
-  for (let i = 0; i < 6; i++) {
-    const start = new Date(startOfSem1);
-    start.setDate(startOfSem1.getDate() + i * 7);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    if (i > 0 && start > new Date(year, month + 1, 0)) break;
-    const startStr = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
-    const endStr = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
-    weeks.push({
-      number: i + 1,
-      start,
-      end,
-      label: `Semana ${i + 1} · ${startStr}-${endStr}`,
-    });
-  }
-  return weeks;
-}
-
-function formatDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function getWeekDays(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => {
@@ -65,20 +32,42 @@ const Powers: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
   const { companies: COMPANIES_ALL } = useCompanies();
+  const { terminals: dynamicTerminals } = useTerminals();
   const [year, setYear] = useState(now.getFullYear());
   const [weekNumber, setWeekNumber] = useState(1);
-  const [terminal, setTerminal] = useState('T3');
+  const [terminal, setTerminal] = useState<string>('');
   const [grid, setGrid] = useState<PowerGrid>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<any[]>([]);
 
+  const powerTerminals = useMemo(() =>
+    dynamicTerminals
+      .filter(t => t.isActive)
+      .map(t => ({
+        id: t.id,
+        label: t.name,
+        companies: t.allowedCompanies || [],
+      })),
+    [dynamicTerminals]
+  );
+
+  // Sync default terminal cuando carga el hook
+  useEffect(() => {
+    if (powerTerminals.length > 0 && !powerTerminals.find(t => t.id === terminal)) {
+      setTerminal(powerTerminals[0].id);
+    }
+  }, [powerTerminals, terminal]);
+
   const weeks = useMemo(() => getMonthWeeks(year, month), [year, month]);
   const activeWeek = useMemo(() => weeks.find(w => w.number === weekNumber) || weeks[0], [weeks, weekNumber]);
   const weekDays = useMemo(() => activeWeek ? getWeekDays(activeWeek.start) : [], [activeWeek]);
-  const terminalConfig = useMemo(() => POWER_TERMINALS.find(t => t.id === terminal)!, [terminal]);
-  const allowedCompanies = useMemo(() => COMPANIES_ALL.filter(c => terminalConfig.companies.includes(c.id)), [terminalConfig]);
+  const terminalConfig = useMemo(() => powerTerminals.find(t => t.id === terminal), [powerTerminals, terminal]);
+  const allowedCompanies = useMemo(
+    () => terminalConfig ? COMPANIES_ALL.filter(c => terminalConfig.companies.includes(c.id)) : [],
+    [terminalConfig, COMPANIES_ALL]
+  );
 
   useEffect(() => {
     if (weeks.length > 0 && !weeks.find(w => w.number === weekNumber)) {
@@ -178,7 +167,7 @@ const Powers: React.FC = () => {
 
       // Group by terminal + company
       const summary: Record<string, Record<string, number>> = {};
-      for (const t of POWER_TERMINALS) {
+      for (const t of powerTerminals) {
         summary[t.id] = {};
         for (const cId of t.companies) {
           summary[t.id][cId] = 0;
@@ -191,7 +180,7 @@ const Powers: React.FC = () => {
         }
       }
 
-      setSummaryData(POWER_TERMINALS.map(t => ({
+      setSummaryData(powerTerminals.map(t => ({
         terminal: t.id,
         label: t.label,
         companies: t.companies.map(cId => ({
@@ -217,7 +206,7 @@ const Powers: React.FC = () => {
   const getCompany = (id: string) => COMPANIES_ALL.find(c => c.id === id);
 
   const handleExportPDF = () => {
-    if (!activeWeek) return;
+    if (!activeWeek || !terminalConfig) return;
     const termLabel = terminalConfig.label;
     const startD = activeWeek.start;
     const endD = activeWeek.end;
@@ -332,12 +321,12 @@ const Powers: React.FC = () => {
       {/* Terminal Tabs */}
       <Tabs value={terminal} onValueChange={setTerminal}>
         <TabsList>
-          {POWER_TERMINALS.map(t => (
+          {powerTerminals.map(t => (
             <TabsTrigger key={t.id} value={t.id} className="font-black text-xs uppercase tracking-wider">{t.label}</TabsTrigger>
           ))}
         </TabsList>
 
-        {POWER_TERMINALS.map(t => (
+        {powerTerminals.map(t => (
           <TabsContent key={t.id} value={t.id}>
             <div className="rounded-2xl border bg-background overflow-x-auto">
               <Table>

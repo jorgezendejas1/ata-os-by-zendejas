@@ -6,26 +6,14 @@ import { COMPANIES, ZONES, SCHEDULES } from '../constants';
 import { getRecords, getStaffing, getTargets, showToast } from '../services/db';
 import { FileDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
+import { getMonthWeeks, MONTHS_ES, formatDateStr as fmtDate } from '../lib/dateUtils';
 
 /* ──────────────────────────  CONSTANTS  ────────────────────────── */
 
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS = MONTHS_ES;
 const MONTHS_LOWER = ['enero','febrero','marzo','abril','mayo','junio',
   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
-
-const COMPANY_META: Record<string, { short: string; bg: string; text: string }> = {
-  c1: { short: 'Sunset', bg: '#92d050', text: '#000' },
-  c2: { short: 'XCA',   bg: '#948a54', text: '#fff' },
-  c3: { short: 'VDP',   bg: '#f8cbad', text: '#000' },
-  c4: { short: 'CID',   bg: '#bdd7ee', text: '#000' },
-  c5: { short: 'KRY',   bg: '#ffff00', text: '#000' },
-  c6: { short: 'KRY G', bg: '#afafaf', text: '#000' },
-};
-
-const TERMINAL_DISPLAY: Record<string, string> = {
-  t2n: 'T2 NACIONAL', t2i: 'T2 INTERNACIONAL', t3: 'TERMINAL 3', t4: 'TERMINAL 4',
-};
 
 const FIRST_LAST: Record<string, { first: string; last: string }> = {
   t2i: { first: 'h_1000', last: 'h_2100' },
@@ -36,34 +24,6 @@ const FIRST_LAST: Record<string, { first: string; last: string }> = {
 const RULE50_TERMINALS = new Set(['t2i', 't3', 't4']);
 
 /* ──────────────────────────  WEEK HELPER  ────────────────────────── */
-
-function getMonthWeeks(year: number, month: number) {
-  const firstDay = new Date(year, month, 1);
-  const dow = firstDay.getDay();
-  const daysBack = dow >= 4 ? dow - 4 : dow + 3;
-  const sem1 = new Date(year, month, 1 - daysBack);
-  const weeks: { number: number; start: Date; end: Date; label: string; days: Date[] }[] = [];
-  for (let i = 0; i < 6; i++) {
-    const start = new Date(sem1);
-    start.setDate(sem1.getDate() + i * 7);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    if (i > 0 && start > new Date(year, month + 1, 0)) break;
-    const s = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
-    const e = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
-    const days = Array.from({ length: 7 }, (_, d) => {
-      const dd = new Date(start);
-      dd.setDate(start.getDate() + d);
-      return dd;
-    });
-    weeks.push({ number: i + 1, start, end, label: `Semana ${i + 1} · ${s}–${e}`, days });
-  }
-  return weeks;
-}
-
-function fmtDate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function semanticColor(pct: number) {
   if (pct >= 70) return { main: '#185FA5', line: '#B5D4F4', bg: '#E6F1FB' };
@@ -80,6 +40,19 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const { terminals: TERMINALS } = useTerminals();
+  const { companies: dynamicCompanies } = useCompanies();
+
+  const getCompanyMeta = (companyId: string) => {
+    const c = dynamicCompanies.find(co => co.id === companyId);
+    return c
+      ? { short: c.label, bg: c.color, text: c.textColor }
+      : { short: companyId, bg: '#eee', text: '#000' };
+  };
+
+  const getTerminalDisplay = (termId: string) => {
+    return TERMINALS.find(t => t.id === termId)?.name.toUpperCase()
+      || termId.toUpperCase();
+  };
   const [activeWeekIdx, setActiveWeekIdx] = useState(0);
   const [companyId, setCompanyId] = useState('c1');
   const [isExporting, setIsExporting] = useState(false);
@@ -278,7 +251,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const w = window as any;
     if (!w.html2pdf) { showToast('html2pdf no disponible', 'error'); return; }
     setIsExporting(true);
-    const cm = COMPANY_META[companyId];
+    const cm = getCompanyMeta(companyId);
     const filename = `${cm.short} - Sem${activeWeek.number} - ${MONTHS[month]}.pdf`;
     const replacements = await rasterizeSvgs(el);
     try {
@@ -307,7 +280,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const total = EXPORT_ORDER.length;
     for (let i = 0; i < total; i++) {
       const cId = EXPORT_ORDER[i];
-      const meta = COMPANY_META[cId];
+      const meta = getCompanyMeta(cId);
       setExportAllProgress(`Generando ${i + 1} de ${total}... ${meta.short}`);
       setCompanyId(cId);
       await new Promise(r => setTimeout(r, 600));
@@ -350,7 +323,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     );
   }
 
-  const cm = COMPANY_META[companyId];
+  const cm = getCompanyMeta(companyId);
   const companyName = COMPANIES.find(c => c.id === companyId)?.name || '';
 
   return (
@@ -392,7 +365,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       {/* Company tabs */}
       <div className="flex flex-wrap gap-1.5">
         {companyList.map(c => {
-          const meta = COMPANY_META[c.id];
+          const meta = getCompanyMeta(c.id);
           const active = c.id === companyId;
           return (
             <button key={c.id} onClick={() => setCompanyId(c.id)}
@@ -504,7 +477,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 <div key={term.id} className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
                   <div className="flex justify-between items-center px-4 py-3"
                     style={{ borderBottom: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
-                    <p className="text-xs font-medium uppercase tracking-wide">{TERMINAL_DISPLAY[term.id] || term.name}</p>
+                    <p className="text-xs font-medium uppercase tracking-wide">{getTerminalDisplay(term.id) || term.name}</p>
                     <p className="text-[10px]" style={{ color: 'var(--color-text-secondary, #888)' }}>
                       Autorizado: {totalTarget.toFixed(2)}
                     </p>
@@ -569,7 +542,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 <AttendanceTable
                   key={`${term.id}-${zone.id}`}
                   termId={term.id}
-                  termName={TERMINAL_DISPLAY[term.id] || term.name}
+                  termName={getTerminalDisplay(term.id) || term.name}
                   zoneName={zone.name}
                   zoneId={zone.id}
                   companyId={companyId}
