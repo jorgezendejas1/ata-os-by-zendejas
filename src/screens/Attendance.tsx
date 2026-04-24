@@ -901,6 +901,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
                       staffing={staffing}
                       targets={targets}
                       onUpdate={(d, s, c, z, v) => handleCellSave(d, t.id, s, c, z, v)}
+                      companyColors={companyColors}
                    />
                </div>
             ))}
@@ -939,6 +940,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
                                               staffing={staffing}
                                               targets={targets}
                                               onUpdate={(d, s, c, z, v) => handleCellSave(d, t.id, s, c, z, v)}
+                                              companyColors={companyColors}
                                            />
                                        </div>
                                     ))}
@@ -992,6 +994,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
                                                           staffing={staffing}
                                                           targets={targets}
                                                           onUpdate={(d, s, c, z, v) => handleCellSave(d, t.id, s, c, z, v)}
+                                                          companyColors={companyColors}
                                                        />
                                                    </div>
                                                 ))}
