@@ -32,20 +32,42 @@ const Powers: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
   const { companies: COMPANIES_ALL } = useCompanies();
+  const { terminals: dynamicTerminals } = useTerminals();
   const [year, setYear] = useState(now.getFullYear());
   const [weekNumber, setWeekNumber] = useState(1);
-  const [terminal, setTerminal] = useState('T3');
+  const [terminal, setTerminal] = useState<string>('');
   const [grid, setGrid] = useState<PowerGrid>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<any[]>([]);
 
+  const powerTerminals = useMemo(() =>
+    dynamicTerminals
+      .filter(t => t.isActive)
+      .map(t => ({
+        id: t.id,
+        label: t.name,
+        companies: t.allowedCompanies || [],
+      })),
+    [dynamicTerminals]
+  );
+
+  // Sync default terminal cuando carga el hook
+  useEffect(() => {
+    if (powerTerminals.length > 0 && !powerTerminals.find(t => t.id === terminal)) {
+      setTerminal(powerTerminals[0].id);
+    }
+  }, [powerTerminals, terminal]);
+
   const weeks = useMemo(() => getMonthWeeks(year, month), [year, month]);
   const activeWeek = useMemo(() => weeks.find(w => w.number === weekNumber) || weeks[0], [weeks, weekNumber]);
   const weekDays = useMemo(() => activeWeek ? getWeekDays(activeWeek.start) : [], [activeWeek]);
-  const terminalConfig = useMemo(() => POWER_TERMINALS.find(t => t.id === terminal)!, [terminal]);
-  const allowedCompanies = useMemo(() => COMPANIES_ALL.filter(c => terminalConfig.companies.includes(c.id)), [terminalConfig]);
+  const terminalConfig = useMemo(() => powerTerminals.find(t => t.id === terminal), [powerTerminals, terminal]);
+  const allowedCompanies = useMemo(
+    () => terminalConfig ? COMPANIES_ALL.filter(c => terminalConfig.companies.includes(c.id)) : [],
+    [terminalConfig, COMPANIES_ALL]
+  );
 
   useEffect(() => {
     if (weeks.length > 0 && !weeks.find(w => w.number === weekNumber)) {
