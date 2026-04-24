@@ -167,7 +167,7 @@ const Powers: React.FC = () => {
 
       // Group by terminal + company
       const summary: Record<string, Record<string, number>> = {};
-      for (const t of POWER_TERMINALS) {
+      for (const t of powerTerminals) {
         summary[t.id] = {};
         for (const cId of t.companies) {
           summary[t.id][cId] = 0;
@@ -180,7 +180,7 @@ const Powers: React.FC = () => {
         }
       }
 
-      setSummaryData(POWER_TERMINALS.map(t => ({
+      setSummaryData(powerTerminals.map(t => ({
         terminal: t.id,
         label: t.label,
         companies: t.companies.map(cId => ({
@@ -321,12 +321,12 @@ const Powers: React.FC = () => {
       {/* Terminal Tabs */}
       <Tabs value={terminal} onValueChange={setTerminal}>
         <TabsList>
-          {POWER_TERMINALS.map(t => (
+          {powerTerminals.map(t => (
             <TabsTrigger key={t.id} value={t.id} className="font-black text-xs uppercase tracking-wider">{t.label}</TabsTrigger>
           ))}
         </TabsList>
 
-        {POWER_TERMINALS.map(t => (
+        {powerTerminals.map(t => (
           <TabsContent key={t.id} value={t.id}>
             <div className="rounded-2xl border bg-background overflow-x-auto">
               <Table>
