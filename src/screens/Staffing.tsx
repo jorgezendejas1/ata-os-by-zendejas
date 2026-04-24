@@ -100,6 +100,15 @@ const Staffing: React.FC = () => {
     }
   }, [pastedKeys]);
 
+  // Si la terminal seleccionada deja de estar activa al cargar terminales reales,
+  // sincronizar con la primera terminal activa disponible.
+  useEffect(() => {
+    if (activeTerminals.length === 0) return;
+    if (!activeTerminals.find(t => t.id === selectedTerminalId)) {
+      setSelectedTerminalId(activeTerminals[0].id);
+    }
+  }, [activeTerminals, selectedTerminalId]);
+
   const selectedTerminal = useMemo(() => terminals.find(t => t.id === selectedTerminalId), [terminals, selectedTerminalId]);
   const tableDays = useMemo(() => getDaysInMonth(currentYear, currentMonth), [currentYear, currentMonth]);
   const calendarWeeks = useMemo(() => getMonthWeeks(currentYear, currentMonth), [currentYear, currentMonth]);
