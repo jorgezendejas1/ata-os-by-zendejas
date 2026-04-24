@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { getTasks, saveTask, deleteTask, showToast } from '../services/db';
 import { Task, TaskStatus } from '../types';
-import { COMPANIES, TERMINALS } from '../constants';
+import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
 import { 
   Copy, 
   Zap, 
@@ -85,6 +86,9 @@ const AdminControl: React.FC = () => {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'ADN' | 'MANUAL'>('ADN');
+
+  const { terminals } = useTerminals();
+  const { companies } = useCompanies();
 
   const refreshTasks = async () => {
     try {
@@ -187,16 +191,10 @@ const AdminControl: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
-                  {COMPANIES.map(c => (
+                  {companies.map(c => (
                     <div key={c.id} className="group p-3 bg-white border border-slate-50 rounded-2xl flex flex-col items-center gap-3 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-slate-200/50 cursor-default">
-                      <div className="w-10 h-10 rounded-full shadow-inner flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: 
-                        c.id === 'c1' ? '#92d050' : 
-                        c.id === 'c2' ? '#948a54' :
-                        c.id === 'c3' ? '#f8cbad' :
-                        c.id === 'c4' ? '#bdd7ee' :
-                        c.id === 'c5' ? '#ffff00' : '#afafaf'
-                      }}>
-                        <span className="text-[9px] font-black text-white mix-blend-difference">{c.id}</span>
+                      <div className="w-10 h-10 rounded-full shadow-inner flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: c.color, color: c.textColor }}>
+                        <span className="text-[9px] font-black mix-blend-difference" style={{ color: c.textColor }}>{c.id}</span>
                       </div>
                       <div className="text-center">
                         <p className="text-xs font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tighter">{c.name}</p>
@@ -207,7 +205,7 @@ const AdminControl: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {TERMINALS.map(t => (
+                  {terminals.map(t => (
                     <div key={t.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center justify-between transition-all hover:bg-white hover:shadow-md">
                       <div className="flex items-center gap-4">
                         <div className={`w-1.5 h-1.5 rounded-full ${t.isActive ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>

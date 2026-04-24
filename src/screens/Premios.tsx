@@ -35,7 +35,7 @@ function getMonthWeeks(year: number, month: number) {
     start.setDate(startOfSem1.getDate() + i * 7);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    if (i > 0 && start > new Date(year, month + 1, 0)) break;
+    if (end.getMonth() !== month) break;
     const startStr = `${start.getDate()} ${MONTHS[start.getMonth()].substring(0, 3)}`;
     const endStr = `${end.getDate()} ${MONTHS[end.getMonth()].substring(0, 3)}`;
     weeks.push({

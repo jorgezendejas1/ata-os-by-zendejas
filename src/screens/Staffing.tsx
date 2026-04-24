@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { TERMINALS, COMPANIES, ZONES } from '../constants';
+import { TERMINALS as TERMINALS_FALLBACK, COMPANIES, ZONES } from '../constants';
+import { useTerminals } from '../hooks/useTerminals';
 import { getStaffing, saveStaffingBatch, showToast } from '../services/db';
 import { StaffingEntry } from '../types';
 import { Save, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ClipboardPaste, Loader2, Info, LayoutGrid, Table2, Calendar, UserCheck, Target, X, Plus, Minus, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
@@ -31,11 +32,12 @@ const getMonthWeeks = (year: number, monthIndex: number) => {
   const daysToSubtract = dayOfWeek >= 4 ? dayOfWeek - 4 : dayOfWeek + 3;
   const startOfSem1 = new Date(year, monthIndex, 1 - daysToSubtract);
   const weeks = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     const start = new Date(startOfSem1);
     start.setDate(startOfSem1.getDate() + (i * 7));
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
+    if (end.getMonth() !== monthIndex) break;
     weeks.push({ id: i, label: `Semana ${i + 1}`, start, end, days: Array.from({ length: 7 }, (_, d) => {
         const dayDate = new Date(start);
         dayDate.setDate(start.getDate() + d);
@@ -58,7 +60,8 @@ const getDaysInMonth = (year: number, monthIndex: number) => {
 
 const Staffing: React.FC = () => {
   const now = new Date();
-  const activeTerminals = useMemo(() => TERMINALS.filter(t => t.isActive), []);
+  const { terminals } = useTerminals();
+  const activeTerminals = useMemo(() => terminals.filter(t => t.isActive), [terminals]);
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>(activeTerminals[0].id);
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -97,7 +100,16 @@ const Staffing: React.FC = () => {
     }
   }, [pastedKeys]);
 
-  const selectedTerminal = useMemo(() => TERMINALS.find(t => t.id === selectedTerminalId), [selectedTerminalId]);
+  // Si la terminal seleccionada deja de estar activa al cargar terminales reales,
+  // sincronizar con la primera terminal activa disponible.
+  useEffect(() => {
+    if (activeTerminals.length === 0) return;
+    if (!activeTerminals.find(t => t.id === selectedTerminalId)) {
+      setSelectedTerminalId(activeTerminals[0].id);
+    }
+  }, [activeTerminals, selectedTerminalId]);
+
+  const selectedTerminal = useMemo(() => terminals.find(t => t.id === selectedTerminalId), [terminals, selectedTerminalId]);
   const tableDays = useMemo(() => getDaysInMonth(currentYear, currentMonth), [currentYear, currentMonth]);
   const calendarWeeks = useMemo(() => getMonthWeeks(currentYear, currentMonth), [currentYear, currentMonth]);
 

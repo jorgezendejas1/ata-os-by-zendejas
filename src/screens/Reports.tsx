@@ -208,6 +208,11 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const svgs = el.querySelectorAll('svg');
     const replacements: { svg: SVGElement; img: HTMLImageElement }[] = [];
     for (const svg of Array.from(svgs)) {
+      // Forzar dimensiones absolutas en px para que html2canvas capture correctamente
+      const w0 = svg.clientWidth || 280;
+      const h0 = svg.clientHeight || 90;
+      svg.setAttribute('width', String(w0));
+      svg.setAttribute('height', String(h0));
       const data = new XMLSerializer().serializeToString(svg);
       const blob = new Blob([data], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
@@ -215,8 +220,6 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const w0 = svg.clientWidth || 280;
-          const h0 = svg.clientHeight || 80;
           canvas.width = w0 * 2;
           canvas.height = h0 * 2;
           const ctx = canvas.getContext('2d')!;
@@ -593,7 +596,7 @@ function SparkLine({ weeks, values, activeIdx, target }: {
   const xPositions = n <= 4 ? [28, 84, 140, 196] : [28, 84, 140, 196, 252];
   const viewW = n <= 4 ? 224 : 280;
 
-  const MIN_Y = 8, MAX_Y = 34;
+  const MIN_Y = 8, MAX_Y = 32;
   const RANGE_Y = MAX_Y - MIN_Y;
 
   const validVals = values.filter(v => v !== null) as { avg: number; pct: number }[];
@@ -613,7 +616,7 @@ function SparkLine({ weeks, values, activeIdx, target }: {
   const activeSc = semanticColor(activePct);
 
   return (
-    <svg viewBox={`0 0 ${viewW} 80`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
+    <svg viewBox={`0 0 ${viewW} 90`} preserveAspectRatio="none" width="100%" style={{ display: 'block' }}>
       {/* Line */}
       {points.length > 1 && (
         <polyline points={points.join(' ')} fill="none"
@@ -628,10 +631,10 @@ function SparkLine({ weeks, values, activeIdx, target }: {
         const sc = semanticColor(v.pct);
         return (
           <g key={i}>
-            <circle cx={x} cy={y} r={isActive ? 5.5 : 3.5}
+            <circle cx={x} cy={y} r={isActive ? 5 : 3.5}
               fill={isActive ? sc.main : '#B5D4F4'}
               stroke={isActive ? 'white' : 'none'} strokeWidth={isActive ? 2 : 0} />
-            <text x={x} y={48} textAnchor="middle" fontSize="9"
+            <text x={x} y={50} textAnchor="middle" fontSize="9"
               fill={isActive ? sc.main : '#999'} fontWeight={isActive ? '600' : '400'}>
               S{i + 1}
             </text>
@@ -639,7 +642,7 @@ function SparkLine({ weeks, values, activeIdx, target }: {
               fill={isActive ? sc.main : '#bbb'}>
               {v.pct.toFixed(0)}%
             </text>
-            <text x={x} y={72} textAnchor="middle" fontSize="8"
+            <text x={x} y={75} textAnchor="middle" fontSize="8"
               fill={isActive ? sc.main : '#ccc'}>
               {v.avg.toFixed(1)} / {target.toFixed(1)}
             </text>

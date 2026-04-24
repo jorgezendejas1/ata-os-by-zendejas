@@ -32,8 +32,9 @@ export function getMonthWeeks(year: number, monthIndex: number): OperativeWeek[]
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
 
-    // Parar si el inicio ya está más allá del último día del mes
-    if (i > 0 && start > new Date(year, monthIndex + 1, 0)) break;
+    // Una semana operativa pertenece al mes en que cae su miércoles (end).
+    // Si el miércoles cae en otro mes, la semana ya no pertenece al mes actual.
+    if (end.getMonth() !== monthIndex) break;
 
     const startStr = `${start.getDate()} ${MONTHS_ES[start.getMonth()].substring(0, 3)}`;
     const endStr   = `${end.getDate()} ${MONTHS_ES[end.getMonth()].substring(0, 3)}`;
