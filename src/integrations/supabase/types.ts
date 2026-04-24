@@ -157,7 +157,7 @@ export type Database = {
           active?: boolean
           color?: string
           created_at?: string | null
-          id?: string
+          id: string
           name: string
           short_name: string
           terminals?: string[] | null
