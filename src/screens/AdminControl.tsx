@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { getTasks, saveTask, deleteTask, showToast } from '../services/db';
 import { Task, TaskStatus } from '../types';
-import { COMPANIES, TERMINALS } from '../constants';
+import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
 import { 
   Copy, 
   Zap, 
@@ -85,6 +86,9 @@ const AdminControl: React.FC = () => {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'ADN' | 'MANUAL'>('ADN');
+
+  const { terminals } = useTerminals();
+  const { companies } = useCompanies();
 
   const refreshTasks = async () => {
     try {
