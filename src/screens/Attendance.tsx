@@ -5,22 +5,14 @@ import { COMPANIES, TERMINALS as TERMINALS_FALLBACK, ZONES, SCHEDULES, DEFAULT_A
 import { saveRecords, getPlannedCount, getRecords, getStaffing, getTargets, updateAttendanceRecord, showToast } from '../services/db';
 import SignaturePad from '../components/SignaturePad';
 import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
+import { getMonthWeeks } from '../lib/dateUtils';
 import { Check, AlertCircle, Save, CheckSquare, Square, Info, ChevronDown, ChevronUp, X, MapPin, Clock, Loader2, Target, ArrowRight, LayoutGrid, Calendar, ListChecks, Edit3, Trash2, Building2, TrendingUp, Filter, CalendarDays, ClipboardCopy, FileSpreadsheet, Wand2 } from 'lucide-react';
-
-const COMPANY_HEX: Record<string, string> = {
-  'c1': '#92d050', // UVC
-  'c2': '#948a54', // Xcaret
-  'c3': '#f8cbad', // Villa del Palmar
-  'c4': '#bdd7ee', // El Cid
-  'c5': '#ffff00', // Krystal
-  'c6': '#afafaf', // Krystal Grand
-};
 
 const HEADER_BG_METAS = '#e2efda';
 const FOOTER_BG_STATS = '#fff2cc';
 
 const FIRST_LAST_SCHEDULES: Record<string, { first: string; last: string }> = {
-  't2n': { first: 'h_0900', last: 'h_cierre' },
   't2i': { first: 'h_1000', last: 'h_2100' },
   't3':  { first: 'h_0900', last: 'h_2030' },
   't4':  { first: 'h_0900', last: 'h_2100' },
@@ -28,43 +20,6 @@ const FIRST_LAST_SCHEDULES: Record<string, { first: string; last: string }> = {
 };
 
 // --- HELPERS DE CALENDARIO OPERATIVO (Jueves a Miércoles) ---
-
-const getMonthWeeks = (year: number, monthIndex: number) => {
-  const firstDayOfMonth = new Date(year, monthIndex, 1);
-  const dayOfWeek = firstDayOfMonth.getDay(); 
-
-  let daysToSubtract = 0;
-  if (dayOfWeek >= 4) {
-    daysToSubtract = dayOfWeek - 4;
-  } else {
-    daysToSubtract = dayOfWeek + 3;
-  }
-
-  const startOfSem1 = new Date(year, monthIndex, 1 - daysToSubtract);
-  
-  const weeks = [];
-  for (let i = 0; i < 6; i++) { 
-    const start = new Date(startOfSem1);
-    start.setDate(startOfSem1.getDate() + (i * 7));
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6); 
-    
-    if (i > 0 && start > new Date(year, monthIndex + 1, 0)) break;
-
-    weeks.push({
-      id: i,
-      label: `Semana ${i + 1}`,
-      start,
-      end,
-      days: Array.from({ length: 7 }, (_, d) => {
-        const dayDate = new Date(start);
-        dayDate.setDate(start.getDate() + d);
-        return dayDate;
-      })
-    });
-  }
-  return weeks;
-};
 
 const getOperativeWeekForDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00');
