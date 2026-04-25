@@ -4,7 +4,7 @@ import { COMPANIES, ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
 import { getPlannedCount, showToast } from '../services/db';
 import SignaturePad from '../components/SignaturePad';
 import { getMonthWeeks } from '../lib/dateUtils';
-import { Check, AlertCircle, Save, MapPin, Clock, Loader2, Target, ArrowRight, Loader2 as Spinner } from 'lucide-react';
+import { Check, AlertCircle, Save, MapPin, Clock, Loader2, Target, ArrowRight } from 'lucide-react';
 
 const HEADER_BG_METAS = '#e2efda';
 const FOOTER_BG_STATS = '#fff2cc';
