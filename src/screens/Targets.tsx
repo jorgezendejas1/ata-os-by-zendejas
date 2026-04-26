@@ -1,30 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TERMINALS as TERMINALS_FALLBACK, COMPANIES, ZONES } from '../constants';
+import { ZONES } from '../constants';
 import { getTargets, saveTargets } from '../services/db';
 import { PositionTarget } from '../types';
 import { Save, Target, Building2, Info, CheckCircle2, LayoutList, Table2, FileText, Download, Calendar as CalendarIcon, Printer, ShieldCheck, Loader2, Plus, Minus, ChevronDown, ChevronUp, MapPin, Briefcase } from 'lucide-react';
 import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
 
 declare var html2pdf: any;
 
-const COMPANY_COLORS: Record<string, string> = {
-  'c1': 'bg-[#92d050] text-black', // Sunset
-  'c4': 'bg-[#bdd7ee] text-black', // CID
-  'c3': 'bg-[#f8cbad] text-black', // Villa del Palmar
-  'c5': 'bg-[#ffff00] text-black', // Krystal
-  'c2': 'bg-[#948a54] text-white', // XCA
-  'c6': 'bg-[#afafaf] text-black', // K Grand
-};
-
 const Targets: React.FC = () => {
   const { terminals: TERMINALS } = useTerminals();
+  const { companies: COMPANIES } = useCompanies();
+  const companyHeaderStyle = (companyId: string): React.CSSProperties => {
+    const c = COMPANIES.find(co => co.id === companyId);
+    return c
+      ? { backgroundColor: c.color, color: c.textColor }
+      : { backgroundColor: '#f3f4f6', color: '#000' };
+  };
+  const companyDotStyle = (companyId: string): React.CSSProperties => {
+    const c = COMPANIES.find(co => co.id === companyId);
+    return { backgroundColor: c?.color || '#3B82F6' };
+  };
   const [targets, setTargets] = useState<PositionTarget[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [viewMode, setViewMode] = useState<'EDIT' | 'PDF'>('EDIT');
   const activeTerminals = useMemo(() => TERMINALS.filter(t => t.isActive), [TERMINALS]);
-  const [expandedTerminalMobile, setExpandedTerminalMobile] = useState<string | null>(TERMINALS_FALLBACK.filter(t => t.isActive)[0]?.id || null);
+  const [expandedTerminalMobile, setExpandedTerminalMobile] = useState<string | null>(null);
+
+  // Sincroniza el panel móvil expandido con la primera terminal activa real
+  useEffect(() => {
+    if (!expandedTerminalMobile && activeTerminals.length > 0) {
+      setExpandedTerminalMobile(activeTerminals[0].id);
+    }
+  }, [activeTerminals, expandedTerminalMobile]);
 
   useEffect(() => {
     getTargets().then(setTargets);
@@ -149,7 +159,7 @@ const Targets: React.FC = () => {
                                         {headerLabel}
                                     </th>
                                     {relevantCompanies.map(comp => (
-                                        <th key={comp.id} className={`p-6 text-center font-black text-[10px] uppercase tracking-widest min-w-[140px] border-r border-white/10 ${COMPANY_COLORS[comp.id] || 'bg-gray-100'}`}>
+                                        <th key={comp.id} style={companyHeaderStyle(comp.id)} className="p-6 text-center font-black text-[10px] uppercase tracking-widest min-w-[140px] border-r border-white/10">
                                             {comp.name}
                                         </th>
                                     ))}
@@ -209,11 +219,10 @@ const Targets: React.FC = () => {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {relevantCompanies.map(comp => {
                                             const val = getTargetValue(term.id, zone.id, comp.id);
-                                            const colorClass = COMPANY_COLORS[comp.id]?.split(' ')[0] || 'bg-gray-100';
                                             return (
                                                 <div key={comp.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-3 h-3 rounded-full ${colorClass}`}></div>
+                                                        <div style={companyDotStyle(comp.id)} className="w-3 h-3 rounded-full"></div>
                                                         <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 uppercase tracking-tighter">{comp.name}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
@@ -368,7 +377,7 @@ const Targets: React.FC = () => {
                     <div className="text-[9px] uppercase font-black text-gray-400 mb-2 tracking-widest">{company.name}</div>
                     <div className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{companyTotals[company.id].toFixed(2)}</div>
                     <div className="mt-4 w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                        <div className={`h-full ${COMPANY_COLORS[company.id]?.split(' ')[0] || 'bg-blue-500'} w-full opacity-40`}></div>
+                        <div style={companyDotStyle(company.id)} className="h-full w-full opacity-40"></div>
                     </div>
                 </div>
             ))}
