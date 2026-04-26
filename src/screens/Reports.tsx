@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
-import { COMPANIES, ZONES, SCHEDULES } from '../constants';
+import { ZONES, SCHEDULES } from '../constants';
 import { getRecords, getStaffing, getTargets, showToast } from '../services/db';
 import { FileDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTerminals } from '../hooks/useTerminals';
@@ -41,6 +41,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [month, setMonth] = useState(now.getMonth());
   const { terminals: TERMINALS } = useTerminals();
   const { companies: dynamicCompanies } = useCompanies();
+  const COMPANIES = dynamicCompanies;
 
   const getCompanyMeta = (companyId: string) => {
     const c = dynamicCompanies.find(co => co.id === companyId);
