@@ -266,7 +266,7 @@ const Staffing: React.FC = () => {
                         <tr className="bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-700">
                             <th className="sticky left-0 z-20 p-5 w-28 text-center bg-gray-900 text-white font-black uppercase tracking-widest border-r border-gray-800">{getTerminalHeader()}</th>
                             {columns.map(col => (
-                                <th key={col.id} className={`p-4 border-r dark:border-gray-700 min-w-[120px] text-center transition-all ${COMPANY_COLORS[col.companyId] || 'bg-gray-100'}`}>
+                                <th key={col.id} style={companyColorStyle(col.companyId)} className="p-4 border-r dark:border-gray-700 min-w-[120px] text-center transition-all">
                                     <div className="flex flex-col items-center">
                                         <span className="font-black text-[11px] uppercase tracking-tighter leading-tight">{col.companyName}</span>
                                         {col.zoneName && <span className="text-[8px] font-bold opacity-70 uppercase tracking-widest mt-1">{col.zoneName}</span>}
