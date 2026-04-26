@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { TERMINALS as TERMINALS_FALLBACK, COMPANIES, ZONES } from '../constants';
+import { ZONES } from '../constants';
 import { useTerminals } from '../hooks/useTerminals';
+import { useCompanies } from '../hooks/useCompanies';
 import { getStaffing, saveStaffingBatch, showToast } from '../services/db';
 import { StaffingEntry } from '../types';
 import { Save, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ClipboardPaste, Loader2, Info, LayoutGrid, Table2, Calendar, UserCheck, Target, X, Plus, Minus, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
@@ -15,15 +16,6 @@ const formatDateLocal = (date: Date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const COMPANY_COLORS: Record<string, string> = {
-  'c1': 'bg-[#92d050]', // Sunset
-  'c4': 'bg-[#bdd7ee]', // CID
-  'c3': 'bg-[#f8cbad]', // Villa del Palmar
-  'c5': 'bg-[#ffff00]', // Krystal
-  'c2': 'bg-[#948a54]', // XCA
-  'c6': 'bg-[#afafaf]', // K Grand
 };
 
 const getMonthWeeks = (year: number, monthIndex: number) => {
@@ -61,6 +53,13 @@ const getDaysInMonth = (year: number, monthIndex: number) => {
 const Staffing: React.FC = () => {
   const now = new Date();
   const { terminals } = useTerminals();
+  const { companies: dynamicCompanies } = useCompanies();
+  const companyColorStyle = (companyId: string): React.CSSProperties => {
+    const c = dynamicCompanies.find(co => co.id === companyId);
+    return c
+      ? { backgroundColor: c.color, color: c.textColor }
+      : { backgroundColor: '#eee', color: '#000' };
+  };
   const activeTerminals = useMemo(() => terminals.filter(t => t.isActive), [terminals]);
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>(activeTerminals[0].id);
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -116,8 +115,10 @@ const Staffing: React.FC = () => {
   const columns: { id: string, zoneId: string, companyId: string, companyName: string, zoneName: string }[] = useMemo(() => {
     if (!selectedTerminal) return [];
     const relevantCompanies = selectedTerminal.allowedCompanies 
-      ? selectedTerminal.allowedCompanies.map(id => COMPANIES.find(c => c.id === id)!).filter(Boolean)
-      : COMPANIES;
+      ? selectedTerminal.allowedCompanies
+          .map(id => dynamicCompanies.find(c => c.id === id))
+          .filter((c): c is NonNullable<typeof c> => !!c)
+      : dynamicCompanies;
 
     if (selectedTerminal.hasZones) {
       const terminalZones = ZONES.filter(z => z.terminalId === selectedTerminal.id);
@@ -130,7 +131,7 @@ const Staffing: React.FC = () => {
       return cols;
     }
     return relevantCompanies.map(c => ({ id: `default_${c.id}`, zoneId: 'default', companyId: c.id, companyName: c.name, zoneName: '' }));
-  }, [selectedTerminal]);
+  }, [selectedTerminal, dynamicCompanies]);
 
   const getValue = (dateObj: Date, zoneId: string, companyId: string): number => {
     const dateStr = formatDateLocal(dateObj);
