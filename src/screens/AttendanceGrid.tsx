@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { User, Terminal, Zone, Schedule, AttendanceFormEntry, AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
-import { COMPANIES, ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
+import { ZONES, SCHEDULES, DEFAULT_ALLOCATIONS } from '../constants';
+import { useCompanies } from '../hooks/useCompanies';
 import { getPlannedCount, showToast } from '../services/db';
 import SignaturePad from '../components/SignaturePad';
 import { getMonthWeeks } from '../lib/dateUtils';
@@ -37,16 +38,17 @@ interface TerminalGridProps {
 }
 
 export const DailyTerminalGrid: React.FC<TerminalGridProps> = ({ terminal, date, records, staffing, targets, onUpdate, companyColors }) => {
+    const { companies: COMPANIES } = useCompanies();
     const schedules = terminal.allowedSchedules ? SCHEDULES.filter(s => terminal.allowedSchedules!.includes(s.id)) : SCHEDULES;
     
     const effectiveCompanies = useMemo(() => {
         if (terminal.allowedCompanies) {
             return terminal.allowedCompanies
                 .map(id => COMPANIES.find(c => c.id === id))
-                .filter((c): c is typeof COMPANIES[0] => !!c);
+                .filter((c): c is NonNullable<typeof c> => !!c);
         }
         return COMPANIES;
-    }, [terminal]);
+    }, [terminal, COMPANIES]);
 
     const terminalZones = ZONES.filter(z => z.terminalId === terminal.id);
 
@@ -343,6 +345,7 @@ interface AttendanceGridProps {
 }
 
 const AttendanceGrid: React.FC<AttendanceGridProps> = ({ terminals, user, onSubmitRecords }) => {
+  const { companies: COMPANIES } = useCompanies();
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null);
   const [selectedZones, setSelectedZones] = useState<Zone[]>([]);
   const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([]);
@@ -369,7 +372,7 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({ terminals, user, onSubm
   const availableCompanies = useMemo(() => {
     if (!selectedTerminal) return [];
     return selectedTerminal.allowedCompanies ? COMPANIES.filter(c => selectedTerminal.allowedCompanies!.includes(c.id)) : COMPANIES;
-  }, [selectedTerminal]);
+  }, [selectedTerminal, COMPANIES]);
 
   const availableSchedules = useMemo(() => {
     if (!selectedTerminal) return [];
