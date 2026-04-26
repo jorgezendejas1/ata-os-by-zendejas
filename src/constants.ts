@@ -1,6 +1,8 @@
 
 import { Company, Schedule, Terminal, Zone } from './types';
 
+// FALLBACK ESTÁTICO — la app usa useCompanies()
+// Este array solo se usa si Supabase no responde
 export const COMPANIES: Company[] = [
   { id: 'c1', name: 'Grupo Sunset' },
   { id: 'c2', name: 'Grupo Xcaret' },
@@ -10,6 +12,7 @@ export const COMPANIES: Company[] = [
   { id: 'c6', name: 'Krystal Grand' },
 ];
 
+// FALLBACK ESTÁTICO — Schedules son fijos a nivel de aplicación
 export const SCHEDULES: Schedule[] = [
   { id: 'h_0900', time: '09:00' },
   { id: 'h_1000', time: '10:00' },
@@ -24,6 +27,8 @@ export const SCHEDULES: Schedule[] = [
   { id: 'h_cierre', time: 'CIERRE' },
 ];
 
+// FALLBACK ESTÁTICO — la app usa useTerminals()
+// Este array solo se usa si Supabase no responde
 export const TERMINALS: Terminal[] = [
   { 
     id: 't1', 
@@ -67,6 +72,7 @@ export const TERMINALS: Terminal[] = [
   }
 ];
 
+// FALLBACK ESTÁTICO — las zonas son fijas a nivel de aplicación
 export const ZONES: Zone[] = [
   { id: 'z1', name: 'Bandas A', terminalId: 't2n' },
   { id: 'z2', name: 'Bandas B', terminalId: 't2n' },
@@ -74,6 +80,8 @@ export const ZONES: Zone[] = [
   { id: 'z4', name: 'Pasillo', terminalId: 't2n' },
 ];
 
+// FALLBACK NUMÉRICO — usado por AttendanceGrid cuando no existen
+// registros de staffing en Supabase para una terminal/zona/empresa
 export const DEFAULT_ALLOCATIONS: Record<string, Record<string, Record<string, number>>> = {
   't1': {
     'default': { 'c1': 5, 'c2': 5, 'c3': 5, 'c4': 2, 'c5': 3 }
