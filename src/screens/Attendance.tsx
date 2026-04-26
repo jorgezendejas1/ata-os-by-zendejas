@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Terminal, AttendanceRecord, StaffingEntry, PositionTarget } from '../types';
-import { COMPANIES, TERMINALS as TERMINALS_FALLBACK, ZONES, SCHEDULES } from '../constants';
+import { ZONES, SCHEDULES } from '../constants';
 import { saveRecords, getPlannedCount, getRecords, getStaffing, getTargets, updateAttendanceRecord, showToast } from '../services/db';
 import { useTerminals } from '../hooks/useTerminals';
 import { useCompanies } from '../hooks/useCompanies';
@@ -25,7 +25,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
   const [staffing, setStaffing] = useState<StaffingEntry[]>([]);
   const [targets, setTargets] = useState<PositionTarget[]>([]);
   const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
-  const [viewTerminalId, setViewTerminalId] = useState(TERMINALS_FALLBACK.filter(t => t.isActive)[0].id);
+  const [viewTerminalId, setViewTerminalId] = useState<string>('all');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { companies: dynamicCompanies } = useCompanies();
@@ -101,8 +101,8 @@ const Attendance: React.FC<AttendanceProps> = ({ user, onSuccess }) => {
               await updateAttendanceRecord(updated, user.name);
               setRecords(prev => prev.map(r => r.id === existing.id ? updated : r));
           } else {
-              const company = dynamicCompanies.find(c => c.id === companyId)
-                || COMPANIES.find(c => c.id === companyId)!;
+              const company = dynamicCompanies.find(c => c.id === companyId);
+              if (!company) throw new Error(`Empresa ${companyId} no encontrada`);
               const terminal = TERMINALS.find(t => t.id === terminalId)!;
               const schedule = SCHEDULES.find(s => s.id === scheduleId)!;
               const zone = zoneId ? ZONES.find(z => z.id === zoneId) : undefined;
