@@ -8,6 +8,7 @@ import { FileDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTerminals } from '../hooks/useTerminals';
 import { useCompanies } from '../hooks/useCompanies';
 import { getMonthWeeks, MONTHS_ES, formatDateStr as fmtDate } from '../lib/dateUtils';
+import { useSettings } from '../contexts/AppSettingsContext';
 
 /* ──────────────────────────  CONSTANTS  ────────────────────────── */
 
@@ -42,6 +43,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const { terminals: TERMINALS } = useTerminals();
   const { companies: dynamicCompanies } = useCompanies();
   const COMPANIES = dynamicCompanies;
+  const { settings } = useSettings();
 
   const getCompanyMeta = (companyId: string) => {
     const c = dynamicCompanies.find(co => co.id === companyId);
@@ -511,7 +513,21 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                           </div>
                           {/* Sparkline */}
                           <div className="flex-1 px-2">
-                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} target={target} />
+                            {settings.reports_show_sparklines ? (
+                              <SparkLine
+                                weeks={weeks}
+                                values={weekValues}
+                                activeIdx={activeWeekIdx}
+                                target={target}
+                                showFractions={settings.reports_show_fractions}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-[60px]">
+                                <span className="text-2xl font-medium" style={{ color: sc.main }}>
+                                  {currentPct.toFixed(0)}%
+                                </span>
+                              </div>
+                            )}
                           </div>
                           {/* Right stats */}
                           <div className="w-[80px] flex-shrink-0 text-right">
@@ -531,6 +547,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         </div>
 
         {/* ═══ PAGE 3 — ATTENDANCE DETAIL TABLES ═══ */}
+        {settings.reports_show_attendance_table && (
         <div id="pdf-section-3">
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Registro de asistencia por día
@@ -560,6 +577,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
             })}
           </div>
         </div>
+        )}
 
         {/* ═══ FOOTER ═══ */}
         <div className="flex justify-between items-center pt-4 text-[9px]" style={{ color: 'var(--color-text-secondary, #aaa)', borderTop: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
@@ -587,11 +605,12 @@ function KpiCard({ label, value, extra }: { label: string; value: string; extra?
 
 /* ──────────────────────────  SPARKLINE  ────────────────────────── */
 
-function SparkLine({ weeks, values, activeIdx, target }: {
+function SparkLine({ weeks, values, activeIdx, target, showFractions = true }: {
   weeks: ReturnType<typeof getMonthWeeks>;
   values: (null | { avg: number; pct: number })[];
   activeIdx: number;
   target: number;
+  showFractions?: boolean;
 }) {
   const n = weeks.length;
   const xPositions = n <= 4 ? [28, 84, 140, 196] : [28, 84, 140, 196, 252];
@@ -643,10 +662,12 @@ function SparkLine({ weeks, values, activeIdx, target }: {
               fill={isActive ? sc.main : '#bbb'}>
               {v.pct.toFixed(0)}%
             </text>
-            <text x={x} y={75} textAnchor="middle" fontSize="8"
-              fill={isActive ? sc.main : '#ccc'}>
-              {v.avg.toFixed(1)} / {target.toFixed(1)}
-            </text>
+            {showFractions && (
+              <text x={x} y={75} textAnchor="middle" fontSize="8"
+                fill={isActive ? sc.main : '#ccc'}>
+                {v.avg.toFixed(1)} / {target.toFixed(1)}
+              </text>
+            )}
           </g>
         );
       })}

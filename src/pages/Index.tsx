@@ -21,7 +21,10 @@ import Powers from '../screens/Powers';
 import Companies from '../screens/Companies';
 import Terminals from '../screens/Terminals';
 import EmailTemplates from '../screens/EmailTemplates';
-import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap, Building2, MapPin, Mails } from 'lucide-react';
+import Appearance from '../screens/Appearance';
+import { useAppSettings } from '../hooks/useAppSettings';
+import { AppSettingsContext } from '../contexts/AppSettingsContext';
+import { LayoutDashboard, Users as UsersIcon, Users2, FileText, LogOut, Menu, X, CalendarClock, KanbanSquare, Database, Target, Sun, Moon, Monitor, Loader2, Plane, CheckCircle2, AlertCircle, Info, AlertTriangle, ChevronRight, ChevronLeft, BookOpen, Library, Trophy, Mail, LayoutGrid, Zap, Building2, MapPin, Mails, Palette } from 'lucide-react';
 
 const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (id: string) => void }> = ({ notification, onDismiss }) => {
   useEffect(() => {
@@ -57,12 +60,13 @@ const NotificationToast: React.FC<{ notification: AppNotification; onDismiss: (i
 
 const Index: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS' | 'COMPANIES' | 'TERMINALS' | 'EMAIL_TEMPLATES'>('ATTENDANCE');
+  const [currentView, setCurrentView] = useState<'ATTENDANCE' | 'REPORTS' | 'USERS' | 'STAFFING' | 'ROADMAP' | 'RECORDS' | 'TARGETS' | 'ADMIN_CONTROL' | 'PROMOTERS' | 'ADC' | 'PREMIOS' | 'CORREOS' | 'MODULOS_T4' | 'POWERS' | 'COMPANIES' | 'TERMINALS' | 'EMAIL_TEMPLATES' | 'APPEARANCE'>('ATTENDANCE');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<AppTheme>('system');
   const [isInitializing, setIsInitializing] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const { settings, updateSetting, resetToDefaults } = useAppSettings();
 
   const dismissNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -156,8 +160,22 @@ const Index: React.FC = () => {
 
   if (!user) return <Login onLogin={handleLogin} />;
 
+  const rootStyle = {
+    '--color-primary': settings.primary_color,
+    '--font-scale':
+      settings.font_size === 'small' ? '0.875' : settings.font_size === 'large' ? '1.125' : '1',
+    '--table-padding':
+      settings.table_density === 'compact'
+        ? '0.5rem'
+        : settings.table_density === 'relaxed'
+        ? '1.25rem'
+        : '0.75rem',
+    fontSize: `calc(1rem * var(--font-scale))`,
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-gray-950 transition-colors duration-300 selection:bg-blue-100">
+    <AppSettingsContext.Provider value={{ settings, updateSetting, resetToDefaults }}>
+    <div className="min-h-screen flex bg-slate-50 dark:bg-gray-950 transition-colors duration-300 selection:bg-blue-100" style={rootStyle}>
       {/* Notifications Layer */}
       <div className="fixed top-20 md:top-6 right-4 left-4 md:left-auto z-[100] pointer-events-none flex flex-col items-center md:items-end">
         {notifications.map(n => (
@@ -220,6 +238,7 @@ const Index: React.FC = () => {
                 <NavItem view="COMPANIES" icon={Building2} label="Empresas" />
                 <NavItem view="TERMINALS" icon={MapPin} label="Terminales" />
                 <NavItem view="EMAIL_TEMPLATES" icon={Mails} label="Plantillas Correo" />
+             <NavItem view="APPEARANCE" icon={Palette} label="Apariencia" />
                 <div className="py-4 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>
                 <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" />
               </>
@@ -279,6 +298,7 @@ const Index: React.FC = () => {
              <NavItem view="COMPANIES" icon={Building2} label="Empresas" collapsed={isSidebarCollapsed} />
              <NavItem view="TERMINALS" icon={MapPin} label="Terminales" collapsed={isSidebarCollapsed} />
              <NavItem view="EMAIL_TEMPLATES" icon={Mails} label="Plantillas Correo" collapsed={isSidebarCollapsed} />
+             <NavItem view="APPEARANCE" icon={Palette} label="Apariencia" collapsed={isSidebarCollapsed} />
              {!isSidebarCollapsed && <div className="pt-6 pb-2 px-2 text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-[0.4em]">Sistemas</div>}
              {isSidebarCollapsed && <div className="pt-4" />}
              <NavItem view="ADMIN_CONTROL" icon={Library} label="ADN & Roadmap" collapsed={isSidebarCollapsed} />
@@ -339,9 +359,11 @@ const Index: React.FC = () => {
           {currentView === 'COMPANIES' && user.role === 'MASTER' && <Companies />}
           {currentView === 'TERMINALS' && user.role === 'MASTER' && <Terminals />}
           {currentView === 'EMAIL_TEMPLATES' && user.role === 'MASTER' && <EmailTemplates />}
+          {currentView === 'APPEARANCE' && user.role === 'MASTER' && <Appearance />}
         </div>
       </main>
     </div>
+    </AppSettingsContext.Provider>
   );
 };
 
