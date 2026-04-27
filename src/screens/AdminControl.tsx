@@ -143,15 +143,15 @@ const AdminControl: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-slate-50/30 pb-20 px-4 md:px-0 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6 pt-6">
+    <div className="max-w-7xl mx-auto pb-20 p-2 md:p-0 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 px-4 md:px-0">
         <div className="flex items-center gap-4">
-          <div className="bg-white/80 backdrop-blur-xl p-3 rounded-2xl shadow-sm border border-slate-100 text-slate-900">
-            <LayoutDashboard size={28} strokeWidth={2.5} />
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-3.5 rounded-2xl text-blue-600 dark:text-blue-400 shadow-sm">
+            <LayoutDashboard size={32} />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">Centro de Mando</h2>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-1">JZL OS Operations Control</p>
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Centro de Mando</h2>
+            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.4em]">JZL OS Operations Control</p>
           </div>
         </div>
         
