@@ -43,6 +43,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const { terminals: TERMINALS } = useTerminals();
   const { companies: dynamicCompanies } = useCompanies();
   const COMPANIES = dynamicCompanies;
+  const { settings } = useSettings();
 
   const getCompanyMeta = (companyId: string) => {
     const c = dynamicCompanies.find(co => co.id === companyId);
