@@ -547,6 +547,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         </div>
 
         {/* ═══ PAGE 3 — ATTENDANCE DETAIL TABLES ═══ */}
+        {settings.reports_show_attendance_table && (
         <div id="pdf-section-3">
           <p className="text-[11px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-secondary, #888)' }}>
             Registro de asistencia por día
@@ -576,6 +577,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
             })}
           </div>
         </div>
+        )}
 
         {/* ═══ FOOTER ═══ */}
         <div className="flex justify-between items-center pt-4 text-[9px]" style={{ color: 'var(--color-text-secondary, #aaa)', borderTop: '0.5px solid var(--color-border-tertiary, #e5e5e5)' }}>
