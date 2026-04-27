@@ -204,15 +204,17 @@ const ModulosT4: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto pb-20 p-2 md:p-0 animate-in fade-in duration-500 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-violet-100 dark:bg-violet-900/30 rounded-2xl">
-          <LayoutGrid className="text-violet-600 dark:text-violet-400" size={28} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black text-foreground uppercase tracking-tight">Módulos T4</h1>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Asignación semanal de posiciones</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-6 px-4 md:px-0">
+        <div className="flex items-center gap-4">
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-3.5 rounded-2xl text-blue-600 dark:text-blue-400 shadow-sm">
+            <LayoutGrid size={32} />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Módulos T4</h2>
+            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.4em]">Asignación semanal de posiciones</p>
+          </div>
         </div>
       </div>
 
