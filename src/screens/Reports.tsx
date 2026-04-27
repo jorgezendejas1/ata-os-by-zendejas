@@ -513,7 +513,21 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                           </div>
                           {/* Sparkline */}
                           <div className="flex-1 px-2">
-                            <SparkLine weeks={weeks} values={weekValues} activeIdx={activeWeekIdx} target={target} />
+                            {settings.reports_show_sparklines ? (
+                              <SparkLine
+                                weeks={weeks}
+                                values={weekValues}
+                                activeIdx={activeWeekIdx}
+                                target={target}
+                                showFractions={settings.reports_show_fractions}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-[60px]">
+                                <span className="text-2xl font-medium" style={{ color: sc.main }}>
+                                  {currentPct.toFixed(0)}%
+                                </span>
+                              </div>
+                            )}
                           </div>
                           {/* Right stats */}
                           <div className="w-[80px] flex-shrink-0 text-right">
