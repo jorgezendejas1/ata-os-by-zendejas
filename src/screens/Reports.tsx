@@ -8,6 +8,7 @@ import { FileDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTerminals } from '../hooks/useTerminals';
 import { useCompanies } from '../hooks/useCompanies';
 import { getMonthWeeks, MONTHS_ES, formatDateStr as fmtDate } from '../lib/dateUtils';
+import { useSettings } from '../contexts/AppSettingsContext';
 
 /* ──────────────────────────  CONSTANTS  ────────────────────────── */
 
