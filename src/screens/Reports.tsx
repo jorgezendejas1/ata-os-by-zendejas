@@ -603,11 +603,12 @@ function KpiCard({ label, value, extra }: { label: string; value: string; extra?
 
 /* ──────────────────────────  SPARKLINE  ────────────────────────── */
 
-function SparkLine({ weeks, values, activeIdx, target }: {
+function SparkLine({ weeks, values, activeIdx, target, showFractions = true }: {
   weeks: ReturnType<typeof getMonthWeeks>;
   values: (null | { avg: number; pct: number })[];
   activeIdx: number;
   target: number;
+  showFractions?: boolean;
 }) {
   const n = weeks.length;
   const xPositions = n <= 4 ? [28, 84, 140, 196] : [28, 84, 140, 196, 252];
@@ -659,10 +660,12 @@ function SparkLine({ weeks, values, activeIdx, target }: {
               fill={isActive ? sc.main : '#bbb'}>
               {v.pct.toFixed(0)}%
             </text>
-            <text x={x} y={75} textAnchor="middle" fontSize="8"
-              fill={isActive ? sc.main : '#ccc'}>
-              {v.avg.toFixed(1)} / {target.toFixed(1)}
-            </text>
+            {showFractions && (
+              <text x={x} y={75} textAnchor="middle" fontSize="8"
+                fill={isActive ? sc.main : '#ccc'}>
+                {v.avg.toFixed(1)} / {target.toFixed(1)}
+              </text>
+            )}
           </g>
         );
       })}
